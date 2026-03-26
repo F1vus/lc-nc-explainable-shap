@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="pl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generated Result</title>
+    <link rel="stylesheet" th:href="@{/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <header class="topbar">
+        <div>
+            <h1>Generated result</h1>
+            <p class="muted">Preview and explanation of the generated interface</p>
+        </div>
+        <a class="back-link" th:href="@{/}">Back</a>
+    </header>
+
+    <main class="grid">
+        <section class="card">
+            <h2>Prompt</h2>
+            <p th:text="${result.prompt}"></p>
+        </section>
+
+        <section class="card">
+            <h2>Preview</h2>
+            <iframe class="preview" th:srcdoc="${result.previewHtml}"></iframe>
+        </section>
+
+        <section class="card">
+            <h2>Generated HTML</h2>
+            <pre th:text="${result.html}"></pre>
+        </section>
+
+        <section class="card">
+            <h2>Generated CSS</h2>
+            <pre th:text="${result.css}"></pre>
+        </section>
+
+        <section class="card">
+            <h2>Explainability</h2>
+            <p th:text="${result.explanation}"></p>
+            <p>
+                Consistency test:
+                <strong th:text="${result.consistent ? 'passed' : 'failed'}"></strong>
+            </p>
+        </section>
+
+        <section class="card">
+            <h2>Fragment attribution</h2>
+            <table>
+                <thead>
+                <tr>
+                    <th>Fragment</th>
+                    <th>Weight</th>
+                    <th>Mapped element</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="fragment : ${result.fragments}">
+                    <td th:text="${fragment.text()}"></td>
+                    <td th:text="${#numbers.formatDecimal(fragment.weight(), 1, 2)}"></td>
+                    <td th:text="${fragment.mappedElement()}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="card">
+            <h2>Prompt refinement suggestions</h2>
+            <ul>
+                <li th:each="item : ${result.suggestions}" th:text="${item}"></li>
+            </ul>
+        </section>
+    </main>
+</div>
+</body>
+</html>
