@@ -15,7 +15,7 @@
     <artifactId>explainable-shap</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>lc-nc-explainable-shap</name>
-    <description>Low-code/Now-code Explainable SHAP-inspired HTML/CSS generator for project university</description>
+    <description>Low-code/No-code Explainable SHAP-inspired HTML/CSS generator for project university</description>
 
     <properties>
         <java.version>21</java.version>
