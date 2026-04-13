@@ -1,25 +1,26 @@
-package com.example.explainable.service;
+package com.example.explainable.service.impl;
 
+import com.example.explainable.service.IPromptFragmentExtractor;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
-public class PromptFragmentExtractor {
+public class HeuristicPromptFragmentExtractor implements IPromptFragmentExtractor {
 
     private static final Set<String> STOP_WORDS = Set.of(
             "a","an","and","or","the","to","of","for","with","in","on","at","by","from","is","are","be","as","it","this","that","into","using","use"
     );
 
+    @Override
     public List<String> extract(String prompt) {
         if (prompt == null || prompt.isBlank()) {
             return List.of();
         }
 
-        String normalized = prompt.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9ąćęłńóśźż\s-]", " ");
-        String[] tokens = normalized.trim().split("\s+");
+        String normalized = prompt.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9ąćęłńóśźż\\s-]", " ");
+        String[] tokens = normalized.trim().split("\\s+");
 
         List<String> fragments = new ArrayList<>();
         for (int i = 0; i < tokens.length; i++) {

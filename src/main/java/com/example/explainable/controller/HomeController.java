@@ -5,7 +5,7 @@ import com.example.explainable.model.GenerationResult;
 import com.example.explainable.service.AttributionService;
 import com.example.explainable.service.ExplanationService;
 import com.example.explainable.service.HtmlGenerationService;
-import com.example.explainable.service.PromptFragmentExtractor;
+import com.example.explainable.service.impl.LlmPromptFragmentExtractor;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +21,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class HomeController {
-    private final PromptFragmentExtractor extractor;
+    private final LlmPromptFragmentExtractor extractor;
     private final HtmlGenerationService htmlGenerationService;
     private final AttributionService attributionService;
     private final ExplanationService explanationService;
