@@ -14,6 +14,7 @@ public class GenerationResult {
     private String previewHtml;
     private String explanation;
     private boolean consistent;
+    private boolean shapleyUsed;
     private List<PromptFragment> fragments;
     private List<String> suggestions;
 }
