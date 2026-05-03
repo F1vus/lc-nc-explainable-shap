@@ -3,11 +3,8 @@ package com.example.explainable.controller;
 import com.example.explainable.model.GenerationRequest;
 import com.example.explainable.model.GenerationResult;
 import com.example.explainable.model.PromptFragment;
-import com.example.explainable.service.AttributionService;
-import com.example.explainable.service.ExplanationService;
-import com.example.explainable.service.HtmlGenerationService;
-import com.example.explainable.service.LlmHtmlGenerationService;
-import com.example.explainable.service.impl.HeuristicPromptFragmentExtractor;
+import com.example.explainable.service.*;
+import com.example.explainable.service.impl.LlmPromptFragmentExtractor;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,9 +21,9 @@ import java.util.List;
 @Slf4j
 public class HomeController {
 
-    private final HeuristicPromptFragmentExtractor extractor;
+    private final LlmPromptFragmentExtractor extractor;
     private final LlmHtmlGenerationService htmlGenerationService;
-    private final AttributionService attributionService;
+    private final ShapleyAttributionService attributionService;
     private final ExplanationService explanationService;
 
     @GetMapping("/")
@@ -57,9 +54,8 @@ public class HomeController {
         log.info("HTML generated, title='{}'", ui.title());
 
         // ── Step 3: Compute Shapley attribution (with heuristic fallback) ─
-        AttributionService.AttributionResult attribution = attributionService.attribute(prompt, rawFragments);
-        List<PromptFragment> attributedFragments = attribution.fragments();
-        boolean shapleyUsed = attribution.shapleyUsed();
+        List<PromptFragment> attributedFragments = attributionService.computeShapleyAttribution(prompt, rawFragments, ui);
+        boolean shapleyUsed = true;
         log.info("Attribution complete: shapleyUsed={}", shapleyUsed);
 
         // ── Step 4: Build consistency test — ablate the top fragment ──────
@@ -72,15 +68,18 @@ public class HomeController {
                 .map(PromptFragment::text)
                 .orElse("");
         String ablatedPrompt = prompt.replace(topFragment, "").trim();
+
+        String explanation = explanationService.explain(ui.summary(), attributedFragments);
+
         boolean consistent   = explanationService.consistencyTest(prompt, ablatedPrompt);
 
         // ── Step 5: Assemble result model ─────────────────────────────────
         GenerationResult result = new GenerationResult();
         result.setPrompt(prompt);
-        result.setHtml(ui.htmlAndCss());
-        result.setPreviewHtml(ui.htmlAndCss());
+        result.setHtml(ui.html());
+        result.setPreviewHtml(ui.html());
         result.setFragments(attributedFragments);
-        result.setExplanation(explanationService.explain(prompt, attributedFragments, shapleyUsed));
+        result.setExplanation(explanation);
         result.setSuggestions(explanationService.refinePromptSuggestions(prompt));
         result.setConsistent(consistent);
         // Expose the attribution method flag so result.html can show a badge

@@ -1,4 +1,4 @@
-package com.example.explainable.service;
+package com.example.explainable.service.heuristic;
 
 import com.example.explainable.model.GeneratedUi;
 import org.springframework.stereotype.Service;
@@ -45,7 +45,7 @@ public class HtmlGenerationService {
         }
         html.append("</section>");
         html.append("<div class='row'>") .append("<div class='card'><h3>Feature A</h3><p>Auto-generated content block.</p></div>") .append("<div class='card'><h3>Feature B</h3><p>Auto-generated content block.</p></div>") .append("</div>"); html.append("</div></body></html>");
-        return new GeneratedUi(html.toString(), title);
+        return new GeneratedUi(html.toString(), "Sum",title);
     }
 
     private String escape(String input) {

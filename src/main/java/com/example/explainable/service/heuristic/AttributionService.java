@@ -1,6 +1,7 @@
-package com.example.explainable.service;
+package com.example.explainable.service.heuristic;
 
 import com.example.explainable.model.PromptFragment;
+import com.example.explainable.service.ShapleyAttributionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,30 +24,19 @@ public class AttributionService {
      *         if the embedding service is unavailable)
      */
     public AttributionResult attribute(String prompt, List<String> fragments) {
-        try {
-            log.info("Attempting Shapley attribution for {} fragments", fragments.size());
-            List<PromptFragment> attributed = shapleyService.computeShapleyAttribution(prompt, fragments);
-            log.info("Shapley attribution succeeded");
-            return new AttributionResult(attributed, true);
-        } catch (Exception e) {
-            log.warn("Shapley attribution failed ({}), falling back to heuristics: {}",
-                    e.getClass().getSimpleName(), e.getMessage());
             List<PromptFragment> attributed = heuristicAttribution(prompt, fragments);
             return new AttributionResult(attributed, false);
-        }
     }
 
     // ─── Heuristic fallback ───────────────────────────────────────────────────
 
     /**
      * Keyword-based attribution used as a fallback.
-     *
      * Scoring rules (in order of precedence):
      *   1. Fragment appears verbatim in the lower-cased prompt → 0.90
      *   2. Fragment contains a known high-signal UI keyword     → 0.75–0.95
      *   3. Fragment is very short (≤ 3 chars)                   → 0.20
      *   4. Default                                              → 0.45
-     *
      * NOTE: These are *heuristic* approximations, not game-theoretic values.
      */
     private List<PromptFragment> heuristicAttribution(String prompt, List<String> fragments) {
@@ -91,5 +81,6 @@ public class AttributionService {
      * real Shapley values ({@code true}) or heuristic scores ({@code false})
      * were used.  The controller uses this flag to display a warning badge.
      */
+
     public record AttributionResult(List<PromptFragment> fragments, boolean shapleyUsed) {}
 }

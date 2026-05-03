@@ -1,6 +1,7 @@
 package com.example.explainable.service;
 
 import com.example.explainable.client.EmbeddingClient;
+import com.example.explainable.model.GeneratedUi;
 import com.example.explainable.model.PromptFragment;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +15,7 @@ import java.util.*;
 public class ShapleyAttributionService {
 
     private final EmbeddingClient embeddingClient;
+    private final LlmFragmentMappingService fragmentMappingService;
 
     // ─── Public API ──────────────────────────────────────────────────────────
 
@@ -24,7 +26,7 @@ public class ShapleyAttributionService {
      * @param fragments fragments extracted from the prompt
      * @return list of {@link PromptFragment} with Shapley weights in [0, 1]
      */
-    public List<PromptFragment> computeShapleyAttribution(String prompt, List<String> fragments) {
+    public List<PromptFragment> computeShapleyAttribution(String prompt, List<String> fragments, GeneratedUi ui) {
         if (fragments == null || fragments.isEmpty()) {
             log.warn("No fragments provided to ShapleyAttributionService");
             return List.of();
@@ -48,16 +50,17 @@ public class ShapleyAttributionService {
         log.debug("Raw Shapley values: {}", Arrays.toString(rawShapley));
 
         // ── Step 3: Min-max normalise to [0, 1] for display ──────────────────
-        double[] weights = minMaxNormalize(rawShapley);
+        double[] weights = softmax(rawShapley);
 
         // ── Step 4: Package results ──────────────────────────────────────────
         List<PromptFragment> result = new ArrayList<>();
         for (int i = 0; i < n; i++) {
-            String mappedEl = mapElement(fragments.get(i));
+            String mappedEl = fragmentMappingService.mapToUiElement(fragments.get(i), ui.html());
             result.add(new PromptFragment(fragments.get(i), weights[i], mappedEl));
-            log.info("  Fragment '{}' → shapley={:.4f} normalised={:.3f} element={}",
+            log.info("  Fragment '{}' → shapley={} normalised={} element={}",
                     fragments.get(i), rawShapley[i], weights[i], mappedEl);
         }
+        System.out.println(result.get(1));
         return result;
     }
 
@@ -100,7 +103,11 @@ public class ShapleyAttributionService {
                     k -> coalitionValue(inCoalition, fragmentEmbeddings, promptEmbedding));
 
             int s = inCoalition.size();
-            // Shapley weight for coalitions of size s:  s!(n-s-1)!/n!
+
+            if (s == n) {
+                continue;
+            }
+
             double weight = (factorial[s] * factorial[n - s - 1]) / factorial[n];
 
             for (int i : notInCoalition) {
@@ -158,7 +165,6 @@ public class ShapleyAttributionService {
 
     /**
      * Cosine similarity in ℝᵈ.  Returns 0 when either vector is near-zero.
-     *
      * sim(a, b) = (a · b) / (‖a‖ · ‖b‖)
      */
     private double cosineSimilarity(double[] a, double[] b) {
@@ -184,35 +190,12 @@ public class ShapleyAttributionService {
      * Min-max normalisation.  Shapley values can be negative (a fragment can
      * hurt the coalition value), so we map the full range linearly to [0, 1].
      */
-    private double[] minMaxNormalize(double[] values) {
-        double min = Arrays.stream(values).min().orElse(0.0);
-        double max = Arrays.stream(values).max().orElse(1.0);
-        double range = max - min;
-        if (range < 1e-10) {
-            return Arrays.stream(values).map(v -> 0.5).toArray();
-        }
-        return Arrays.stream(values).map(v -> (v - min) / range).toArray();
-    }
+    private double[] softmax(double[] values) {
+        double temp = 10;
+        double sumExp = Arrays.stream(values).map(v -> Math.exp(v * temp)).sum();
 
-    // ─── Semantic → UI element mapping ───────────────────────────────────────
-
-    /**
-     * Heuristically maps a fragment's text to a likely UI element type.
-     * This is purely label-assignment for display — it does not affect weights.
-     */
-    private String mapElement(String fragment) {
-        String f = fragment.toLowerCase(Locale.ROOT);
-        if (f.contains("login")  || f.contains("sign"))       return "form";
-        if (f.contains("dark")   || f.contains("theme"))      return "theme";
-        if (f.contains("todo")   || f.contains("task"))       return "task list";
-        if (f.contains("button") || f.contains("action"))     return "button";
-        if (f.contains("card"))                                return "card";
-        if (f.contains("input")  || f.contains("field"))      return "input";
-        if (f.contains("nav")    || f.contains("menu"))       return "navigation";
-        if (f.contains("table")  || f.contains("list"))       return "data table";
-        if (f.contains("dashboard"))                           return "dashboard layout";
-        if (f.contains("modal")  || f.contains("popup"))      return "modal";
-        if (f.contains("search"))                              return "search bar";
-        return "layout";
+        return Arrays.stream(values)
+                .map(v -> Math.exp(v * temp) / sumExp)
+                .toArray();
     }
 }

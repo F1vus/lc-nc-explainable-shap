@@ -1,126 +1,88 @@
 package com.example.explainable.service;
 
+import com.example.explainable.client.LlmClient;
 import com.example.explainable.model.PromptFragment;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class ExplanationService {
 
-    // ─── Explanation ─────────────────────────────────────────────────────────
+    private final LlmClient llmClient;
 
-    /**
-     * Generates a narrative explanation for the Shapley attribution results.
-     *
-     * @param prompt         original user prompt
-     * @param fragments      Shapley-weighted fragments
-     * @param shapleyUsed    true = real Shapley values, false = heuristic fallback
-     */
-    public String explain(String prompt, List<PromptFragment> fragments, boolean shapleyUsed) {
+    // ─── Explanation via LLM ────────────────────────────────────────────────
+    public String explain(String appSummary, List<PromptFragment> fragments) {
         if (fragments == null || fragments.isEmpty()) {
-            return "No prompt fragments were detected. Try a more descriptive prompt.";
+            return "No prompt fragments were detected.";
         }
 
-        // Rank fragments by weight descending
         List<PromptFragment> sorted = fragments.stream()
                 .sorted(Comparator.comparingDouble(PromptFragment::weight).reversed())
-                .collect(Collectors.toList());
+                .toList();
 
-        PromptFragment top    = sorted.get(0);
-        PromptFragment bottom = sorted.get(sorted.size() - 1);
+        String fragmentsText = sorted.stream()
+                .map(f -> String.format(
+                        Locale.ROOT,
+                        "- %s (score: %.3f, mapped element: %s)",
+                        f.text(),
+                        f.weight(),
+                        f.mappedElement()
+                ))
+                .collect(Collectors.joining("\n"));
 
-        String method = shapleyUsed
-                ? "Shapley values (game-theory attribution)"
-                : "heuristic keyword scoring (embedding service unavailable)";
+        String explanationPrompt = """
+            You are an assistant that explains how automatically generated low-code apps behave.
+            You must write short, human-centered explanations of design choices — like what a user
+            would see in a tool-tip or help message. Avoid academic or analytic language.
 
-        StringBuilder sb = new StringBuilder();
-        sb.append("Attribution method: ").append(method).append(".\n\n");
+            Given this prototype summary:
+            %s
 
-        sb.append("Your prompt was split into ").append(fragments.size())
-                .append(" fragments. ");
+            And these feature fragments with importance scores:
+            %s
 
-        sb.append("The fragment with the highest influence was \"")
-                .append(top.text())
-                .append("\" (weight ").append(String.format("%.2f", top.weight())).append("), ")
-                .append("which most strongly shaped the \"")
-                .append(top.mappedElement()).append("\" part of the UI. ");
+            Write max 2 paragraph explaining how these features influence
+            the app's behavior. Focus on what users experience — not model details or "scores".
 
-        if (sorted.size() > 1) {
-            sb.append("The least influential fragment was \"")
-                    .append(bottom.text())
-                    .append("\" (weight ").append(String.format("%.2f", bottom.weight())).append("). ");
-        }
+            Now produce the natural language explanation:
+            """.formatted(appSummary, fragmentsText);
 
-        if (shapleyUsed) {
-            sb.append("\n\nHow Shapley attribution works here: for each fragment fᵢ, "
-                    + "the algorithm tests every possible subset S of the remaining fragments "
-                    + "and measures how much adding fᵢ to S increases the cosine similarity "
-                    + "between the coalition's mean embedding and the full-prompt embedding. "
-                    + "The Shapley value φᵢ is the weighted average of those marginal gains "
-                    + "across all subsets — giving each fragment a fair, order-independent credit.");
-        }
-
-        return sb.toString();
+        return llmClient.callLlm(explanationPrompt).trim();
     }
 
-    /**
-     * Overload kept for backward compatibility — assumes Shapley was used.
-     */
-    public String explain(String prompt, List<PromptFragment> fragments) {
-        return explain(prompt, fragments, true);
-    }
+    // ─── Prompt refinement suggestions ──────────────────────────────────────
 
-
-    /**
-     * Returns actionable suggestions for improving the prompt.
-     *
-     * In a more advanced version these could be generated dynamically by an
-     * LLM conditioned on the Shapley weights (e.g. "fragment X had weight 0.1
-     * — try making it more specific").
-     */
     public List<String> refinePromptSuggestions(String prompt) {
         return List.of(
-                "Name the page type explicitly — e.g. 'login page', 'dashboard', 'todo app'.",
-                "List one or two concrete UI components — e.g. 'with a form', 'with a sidebar card'.",
-                "State the visual theme — e.g. 'dark mode', 'minimal white', 'vibrant'.",
-                "Describe the primary user action — e.g. 'user can add tasks', 'user registers'.",
-                "Keep each requirement as a distinct clause so the extractor treats it as a separate fragment."
+                "Name the page type explicitly — e.g. login page, dashboard, todo app.",
+                "List concrete UI components — e.g. form, sidebar, cards, table.",
+                "Describe the visual theme — e.g. dark mode, minimal, modern.",
+                "State the main user action — e.g. add tasks, login, register.",
+                "Keep requirements separated so attribution becomes more accurate."
         );
     }
 
+    // ─── Consistency test ───────────────────────────────────────────────────
 
-    /**
-     * Consistency test: checks whether removing the top fragment would produce
-     * a semantically different prompt.
-     *
-     * <p>In a full SHAP pipeline this would regenerate the UI with the top
-     * fragment ablated and compare outputs — here we conservatively report
-     * {@code true} (consistent) whenever the modified prompt is non-trivially
-     * different from the original, which is always the case when a fragment
-     * is removed.</p>
-     *
-     * @param originalPrompt  the full prompt
-     * @param modifiedPrompt  the prompt with the top fragment removed
-     * @return true if the two prompts are detectably different
-     */
     public boolean consistencyTest(String originalPrompt, String modifiedPrompt) {
-        if (modifiedPrompt == null || modifiedPrompt.isBlank()) return false;
-        if (modifiedPrompt.equalsIgnoreCase(originalPrompt))    return false;
+        if (modifiedPrompt == null || modifiedPrompt.isBlank()) {
+            return false;
+        }
 
-        // A meaningful difference requires at least 10% length change
-        double ratio = (double) Math.abs(originalPrompt.length() - modifiedPrompt.length())
-                / Math.max(originalPrompt.length(), 1);
+        if (modifiedPrompt.equalsIgnoreCase(originalPrompt)) {
+            return false;
+        }
+
+        double ratio = (double) Math.abs(
+                originalPrompt.length() - modifiedPrompt.length()
+        ) / Math.max(originalPrompt.length(), 1);
+
         return ratio > 0.05;
-    }
-
-    public String buildPreviewHtml(String html) {
-        return html == null ? "" : html;
-    }
-
-    public String joinSuggestions(List<String> suggestions) {
-        return String.join(" ", suggestions);
     }
 }
