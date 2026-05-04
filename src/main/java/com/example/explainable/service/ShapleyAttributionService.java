@@ -16,6 +16,7 @@ public class ShapleyAttributionService {
 
     private final EmbeddingClient embeddingClient;
     private final LlmFragmentMappingService fragmentMappingService;
+    private final LlmHtmlElementExtractor htmlElementExtractor;
 
     // ─── Public API ──────────────────────────────────────────────────────────
 
@@ -38,15 +39,23 @@ public class ShapleyAttributionService {
         // ── Step 1: Embed the full prompt and every fragment ─────────────────
         // These are the only embedding API calls we make — O(n+1) total.
         // Everything else is pure linear algebra in memory.
-        double[] promptEmbedding = embeddingClient.embed(prompt);
+
         double[][] fragmentEmbeddings = new double[n][];
         for (int i = 0; i < n; i++) {
             fragmentEmbeddings[i] = embeddingClient.embed(fragments.get(i));
             log.debug("  [{}] embedded '{}' (dim={})", i, fragments.get(i), fragmentEmbeddings[i].length);
         }
 
+        List<String> uiElements = htmlElementExtractor.extract(ui.html());
+        if (!uiElements.contains("body")) uiElements.add("body");
+
+        double[][] targetEmbeddings = new double[uiElements.size()][];
+        for (int i = 0; i < uiElements.size(); i++) {
+            targetEmbeddings[i] = embeddingClient.embed(uiElements.get(i));
+        }
+
         // ── Step 2: Exact Shapley computation ────────────────────────────────
-        double[] rawShapley = computeExactShapley(n, fragmentEmbeddings, promptEmbedding);
+        double[] rawShapley = computeExactShapley(n, fragmentEmbeddings, targetEmbeddings);
         log.debug("Raw Shapley values: {}", Arrays.toString(rawShapley));
 
         // ── Step 3: Min-max normalise to [0, 1] for display ──────────────────
@@ -83,13 +92,13 @@ public class ShapleyAttributionService {
      */
     private double[] computeExactShapley(int n,
                                          double[][] fragmentEmbeddings,
-                                         double[] promptEmbedding) {
-        double[] shapley   = new double[n];
+                                         double[][] targetEmbeddings) {
+        double[] shapley = new double[n];
         double[] factorial = precomputeFactorials(n);
+        Map<Integer, Double> valueCache = new HashMap<>(1 << n);
 
         // Cache coalition values to avoid recomputing the same subset
         // when multiple players share the same base coalition.
-        Map<Integer, Double> valueCache = new HashMap<>(1 << n);
 
         for (int mask = 0; mask < (1 << n); mask++) {
             // Identify players in / not in this coalition
@@ -100,22 +109,22 @@ public class ShapleyAttributionService {
             }
 
             double vS = valueCache.computeIfAbsent(mask,
-                    k -> coalitionValue(inCoalition, fragmentEmbeddings, promptEmbedding));
+                    k -> coalitionValue(inCoalition, fragmentEmbeddings, targetEmbeddings));
 
             int s = inCoalition.size();
-
-            if (s == n) {
-                continue;
-            }
+            if (s == n) continue;
 
             double weight = (factorial[s] * factorial[n - s - 1]) / factorial[n];
 
             for (int i : notInCoalition) {
                 int maskWithI = mask | (1 << i);
-                List<Integer> coalitionWithI = new ArrayList<>(inCoalition);
-                coalitionWithI.add(i);
+                // Викликаємо coalitionValue з новим параметром
                 double vSi = valueCache.computeIfAbsent(maskWithI,
-                        k -> coalitionValue(coalitionWithI, fragmentEmbeddings, promptEmbedding));
+                        k -> {
+                            List<Integer> coalitionWithI = new ArrayList<>(inCoalition);
+                            coalitionWithI.add(i);
+                            return coalitionValue(coalitionWithI, fragmentEmbeddings, targetEmbeddings);
+                        });
 
                 shapley[i] += weight * (vSi - vS);
             }
@@ -141,28 +150,39 @@ public class ShapleyAttributionService {
      */
     private double coalitionValue(List<Integer> coalition,
                                   double[][] fragmentEmbeddings,
-                                  double[] promptEmbedding) {
+                                  double[][] targetEmbeddings) {
         if (coalition.isEmpty()) return 0.0;
 
-        int dim = promptEmbedding.length;
-        double[] coalitionEmbedding = new double[dim];
+        // Рахуємо середній вектор коаліції (той самий calculateMeanEmbedding)
+        double[] coalitionEmbedding = calculateMeanEmbedding(coalition, fragmentEmbeddings);
 
-        // Mean-pool the embeddings of the coalition's fragments
-        for (int idx : coalition) {
-            double[] fe = fragmentEmbeddings[idx];
-            for (int d = 0; d < dim; d++) {
-                coalitionEmbedding[d] += fe[d];
+        // v(S) = наскільки добре ця група фрагментів "попадає" хоча б в один UI-елемент
+        double maxSimilarity = 0.0;
+        for (double[] targetEmb : targetEmbeddings) {
+            double sim = cosineSimilarity(coalitionEmbedding, targetEmb);
+            if (sim > maxSimilarity) {
+                maxSimilarity = sim;
             }
         }
-        for (int d = 0; d < dim; d++) {
-            coalitionEmbedding[d] /= coalition.size();
-        }
 
-        return cosineSimilarity(coalitionEmbedding, promptEmbedding);
+        return maxSimilarity;
     }
 
     // ─── Math helpers ────────────────────────────────────────────────────────
 
+    private double[] calculateMeanEmbedding(List<Integer> coalition, double[][] fragmentEmbeddings) {
+        int dim = fragmentEmbeddings[0].length;
+        double[] mean = new double[dim];
+        for (int idx : coalition) {
+            for (int d = 0; d < dim; d++) {
+                mean[d] += fragmentEmbeddings[idx][d];
+            }
+        }
+        for (int d = 0; d < dim; d++) {
+            mean[d] /= coalition.size();
+        }
+        return mean;
+    }
     /**
      * Cosine similarity in ℝᵈ.  Returns 0 when either vector is near-zero.
      * sim(a, b) = (a · b) / (‖a‖ · ‖b‖)
@@ -191,7 +211,7 @@ public class ShapleyAttributionService {
      * hurt the coalition value), so we map the full range linearly to [0, 1].
      */
     private double[] softmax(double[] values) {
-        double temp = 10;
+        double temp = values.length <= 3 ? 2 : 10;
         double sumExp = Arrays.stream(values).map(v -> Math.exp(v * temp)).sum();
 
         return Arrays.stream(values)
