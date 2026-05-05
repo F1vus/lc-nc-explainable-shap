@@ -18,7 +18,7 @@
     <main class="panel">
         <form th:action="@{/generate}" th:object="${generationRequest}" method="post" class="form-card">
             <label for="prompt">Wpisz prompt</label>
-            <textarea id="prompt" th:field="*{prompt}" rows="8" placeholder="Np. dashboard for todo app with dark theme and login"></textarea>
+            <textarea id="prompt" th:field="*{prompt}"  rows="8" placeholder="Np. dashboard for todo app with dark theme and login">Np. dashboard for todo app with dark theme and login</textarea>
             <p class="error" th:if="${#fields.hasErrors('prompt')}" th:errors="*{prompt}"></p>
             <button type="submit">Generate</button>
         </form>
