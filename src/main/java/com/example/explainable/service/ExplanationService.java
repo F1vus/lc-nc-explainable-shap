@@ -1,47 +1,88 @@
 package com.example.explainable.service;
 
+import com.example.explainable.client.LlmClient;
 import com.example.explainable.model.PromptFragment;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class ExplanationService {
 
-    public String explain(String prompt, List<PromptFragment> fragments) {
+    private final LlmClient llmClient;
+
+    // ─── Explanation via LLM ────────────────────────────────────────────────
+    public String explain(String appSummary, List<PromptFragment> fragments) {
         if (fragments == null || fragments.isEmpty()) {
-            return "No prompt fragments detected.";
+            return "No prompt fragments were detected.";
         }
 
-        PromptFragment top = fragments.stream()
-                .max(Comparator.comparingDouble(PromptFragment::weight))
-                .orElse(fragments.getFirst());
+        List<PromptFragment> sorted = fragments.stream()
+                .sorted(Comparator.comparingDouble(PromptFragment::weight).reversed())
+                .toList();
 
-        return "The system detected " + fragments.size() + " relevant fragments. "
-                + "The strongest one was '" + top.text() + "' with weight " + String.format("%.2f", top.weight())
-                + ", which influenced the '" + top.mappedElement() + "' part of the generated interface. "
-                + "This is SHAP-inspired attribution, not exact SHAP.";
+        String fragmentsText = sorted.stream()
+                .map(f -> String.format(
+                        Locale.ROOT,
+                        "- %s (score: %.3f, mapped element: %s)",
+                        f.text(),
+                        f.weight(),
+                        f.mappedElement()
+                ))
+                .collect(Collectors.joining("\n"));
+
+        String explanationPrompt = """
+            You are an assistant that explains how automatically generated low-code apps behave.
+            You must write short, human-centered explanations of design choices — like what a user
+            would see in a tool-tip or help message. Avoid academic or analytic language.
+
+            Given this prototype summary:
+            %s
+
+            And these feature fragments with importance scores:
+            %s
+
+            Write max 2 paragraph explaining how these features influence
+            the app's behavior. Focus on what users experience — not model details or "scores".
+
+            Now produce the natural language explanation:
+            """.formatted(appSummary, fragmentsText);
+
+        return llmClient.callLlm(explanationPrompt).trim();
     }
+
+    // ─── Prompt refinement suggestions ──────────────────────────────────────
 
     public List<String> refinePromptSuggestions(String prompt) {
         return List.of(
-                "Add the target page type, e.g. login page, dashboard, todo app.",
-                "Specify one or two UI components, e.g. button, form, card, table.",
-                "Mention theme preferences, e.g. dark mode or minimal style.",
-                "Add expected user action, e.g. register, search, add item."
+                "Name the page type explicitly — e.g. login page, dashboard, todo app.",
+                "List concrete UI components — e.g. form, sidebar, cards, table.",
+                "Describe the visual theme — e.g. dark mode, minimal, modern.",
+                "State the main user action — e.g. add tasks, login, register.",
+                "Keep requirements separated so attribution becomes more accurate."
         );
     }
 
+    // ─── Consistency test ───────────────────────────────────────────────────
+
     public boolean consistencyTest(String originalPrompt, String modifiedPrompt) {
-        return modifiedPrompt != null && !modifiedPrompt.isBlank() && !modifiedPrompt.equalsIgnoreCase(originalPrompt);
-    }
+        if (modifiedPrompt == null || modifiedPrompt.isBlank()) {
+            return false;
+        }
 
-    public String buildPreviewHtml(String html) {
-        return html == null ? "" : html;
-    }
+        if (modifiedPrompt.equalsIgnoreCase(originalPrompt)) {
+            return false;
+        }
 
-    public String joinSuggestions(List<String> suggestions) {
-        return String.join("", suggestions);
+        double ratio = (double) Math.abs(
+                originalPrompt.length() - modifiedPrompt.length()
+        ) / Math.max(originalPrompt.length(), 1);
+
+        return ratio > 0.05;
     }
 }

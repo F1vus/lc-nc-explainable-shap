@@ -1,3 +1,3 @@
 package com.example.explainable.model;
 
-public record GeneratedUi(String htmlAndCss, String title) {}
+public record GeneratedUi(String html, String summary, String title) {}
