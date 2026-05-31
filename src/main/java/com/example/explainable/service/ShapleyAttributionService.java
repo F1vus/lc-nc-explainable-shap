@@ -46,7 +46,7 @@ public class ShapleyAttributionService {
             log.debug("  [{}] embedded '{}' (dim={})", i, fragments.get(i), fragmentEmbeddings[i].length);
         }
 
-        List<String> uiElements = htmlElementExtractor.extract(ui.html());
+        List<String> uiElements = new java.util.ArrayList<>(htmlElementExtractor.extract(ui.html()));
         if (!uiElements.contains("body")) uiElements.add("body");
 
         double[][] targetEmbeddings = new double[uiElements.size()][];
@@ -69,7 +69,7 @@ public class ShapleyAttributionService {
             log.info("  Fragment '{}' → shapley={} normalised={} element={}",
                     fragments.get(i), rawShapley[i], weights[i], mappedEl);
         }
-        System.out.println(result.get(1));
+//        System.out.println(result.get(1));
         return result;
     }
 
