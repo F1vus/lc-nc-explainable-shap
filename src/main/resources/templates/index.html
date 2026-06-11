@@ -16,18 +16,68 @@
     </header>
 
     <main class="panel">
-        <form th:action="@{/generate}" th:object="${generationRequest}" method="post" class="form-card">
-            <label for="prompt">Wpisz prompt</label>
-            <textarea id="prompt" th:field="*{prompt}"  rows="8" placeholder="Np. dashboard for todo app with dark theme and login">Np. dashboard for todo app with dark theme and login</textarea>
-            <p class="error" th:if="${#fields.hasErrors('prompt')}" th:errors="*{prompt}"></p>
-            <button type="submit">Generate</button>
-        </form>
 
-        <section class="hint-card">
-            <h2>Jak to działa</h2>
-            <p>System dzieli prompt na fragmenty, generuje HTML/CSS i przypisuje wpływ fragmentów do elementów UI.</p>
-        </section>
+        <!-- Tab bar -->
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="switchTab('generate', this)">⚡ Generate</button>
+            <button class="tab-btn" onclick="switchTab('compare', this)">⚖️ Compare LLMs</button>
+        </div>
+
+        <!-- Tab: Generate -->
+        <div id="tab-generate" class="tab-pane active">
+            <div class="form-card">
+                <form th:action="@{/generate}" th:object="${generationRequest}" method="post">
+                    <label for="prompt">Wpisz prompt</label>
+                    <textarea id="prompt" th:field="*{prompt}" rows="8"
+                              placeholder="Np. dashboard for todo app with dark theme and login"></textarea>
+                    <p class="error" th:if="${#fields.hasErrors('prompt')}" th:errors="*{prompt}"></p>
+                    <button type="submit">Generate UI</button>
+                </form>
+            </div>
+            <section class="hint-card">
+                <h2>Jak to działa</h2>
+                <p>System dzieli prompt na fragmenty, generuje HTML/CSS i przypisuje wpływ fragmentów do elementów UI.</p>
+            </section>
+        </div>
+
+        <!-- Tab: Compare LLMs -->
+        <div id="tab-compare" class="tab-pane">
+            <div class="form-card">
+                <div class="compare-badge">⚖️ Side-by-side LLM comparison</div>
+                <div class="provider-chips">
+                    <span class="chip chip-groq">🟢 Groq · Llama 3.3 70B</span>
+                    <span class="chip chip-gemini">🟡 Google · Gemini 2.0 Flash</span>
+                </div>
+                <form th:action="@{/compare}" th:object="${comparisonRequest}" method="post">
+                    <label for="comparePrompt">Wpisz prompt do porównania</label>
+                    <textarea id="comparePrompt" th:field="*{prompt}" rows="8"
+                              placeholder="Np. login page with email and password fields, dark theme, remember me checkbox"></textarea>
+                    <p class="error" th:if="${#fields.hasErrors('prompt')}" th:errors="*{prompt}"></p>
+                    <button type="submit">Compare LLMs</button>
+                </form>
+            </div>
+            <section class="hint-card">
+                <h2>Porównanie modeli LLM</h2>
+                <p>Oba modele otrzymują ten sam prompt i generują HTML/CSS równolegle. Wyniki są prezentowane obok siebie z metrykami czasu odpowiedzi.</p>
+            </section>
+        </div>
+
     </main>
 </div>
+
+<script>
+    function switchTab(name, btn) {
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + name).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    // Auto-open compare tab if there was a compare form error
+    const compareErrors = document.querySelector('#tab-compare .error');
+    if (compareErrors) {
+        document.querySelectorAll('.tab-btn')[1].click();
+    }
+</script>
 </body>
 </html>

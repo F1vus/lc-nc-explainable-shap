@@ -1,5 +1,7 @@
 package com.example.explainable.controller;
 
+import com.example.explainable.model.ComparisonRequest;
+import com.example.explainable.model.ComparisonResult;
 import com.example.explainable.model.GenerationRequest;
 import com.example.explainable.model.GenerationResult;
 import com.example.explainable.model.PromptFragment;
@@ -25,10 +27,12 @@ public class HomeController {
     private final LlmHtmlGenerationService htmlGenerationService;
     private final ShapleyAttributionService attributionService;
     private final ExplanationService explanationService;
+    private final LlmComparisonService comparisonService;
 
     @GetMapping("/")
     public String index(Model model) {
         model.addAttribute("generationRequest", new GenerationRequest());
+        model.addAttribute("comparisonRequest", new ComparisonRequest());
         return "index";
     }
 
@@ -39,41 +43,33 @@ public class HomeController {
             Model model) {
 
         if (bindingResult.hasErrors()) {
+            model.addAttribute("comparisonRequest", new ComparisonRequest());
             return "index";
         }
 
         String prompt = generationRequest.getPrompt();
         log.info("Processing prompt: '{}'", prompt);
 
-        // ── Step 1: Extract fragments ─────────────────────────────────────
         List<String> rawFragments = extractor.extract(prompt);
         log.info("Extracted {} fragments: {}", rawFragments.size(), rawFragments);
 
-        // ── Step 2: Generate HTML via LLM ────────────────────────────────
         var ui = htmlGenerationService.generate(prompt);
         log.info("HTML generated, title='{}'", ui.title());
 
-        // ── Step 3: Compute Shapley attribution (with heuristic fallback) ─
         List<PromptFragment> attributedFragments = attributionService.computeShapleyAttribution(prompt, rawFragments, ui);
         boolean shapleyUsed = true;
         log.info("Attribution complete: shapleyUsed={}", shapleyUsed);
 
-        // ── Step 4: Build consistency test — ablate the top fragment ──────
-        // We remove the highest-weight fragment and compare the resulting
-        // truncated prompt against the original.  A real implementation would
-        // regenerate the UI and compare outputs; here we test prompt-level change.
         String topFragment = attributedFragments.isEmpty() ? "" :
                 attributedFragments.stream()
-                .max(java.util.Comparator.comparingDouble(PromptFragment::weight))
-                .map(PromptFragment::text)
-                .orElse("");
+                        .max(java.util.Comparator.comparingDouble(PromptFragment::weight))
+                        .map(PromptFragment::text)
+                        .orElse("");
         String ablatedPrompt = prompt.replace(topFragment, "").trim();
 
         String explanation = explanationService.explain(ui.summary(), attributedFragments);
+        boolean consistent = explanationService.consistencyTest(prompt, ablatedPrompt);
 
-        boolean consistent   = explanationService.consistencyTest(prompt, ablatedPrompt);
-
-        // ── Step 5: Assemble result model ─────────────────────────────────
         GenerationResult result = new GenerationResult();
         result.setPrompt(prompt);
         result.setHtml(ui.html());
@@ -82,12 +78,42 @@ public class HomeController {
         result.setExplanation(explanation);
         result.setSuggestions(explanationService.refinePromptSuggestions(prompt));
         result.setConsistent(consistent);
-        // Expose the attribution method flag so result.html can show a badge
         result.setShapleyUsed(shapleyUsed);
 
         model.addAttribute("result", result);
         model.addAttribute("generationRequest", generationRequest);
         log.info("Rendering result page");
         return "result";
+    }
+
+    // ── LLM Comparison ─────────────────────────────────────────────────────
+
+    @GetMapping("/compare")
+    public String compareForm(Model model) {
+        model.addAttribute("generationRequest", new GenerationRequest());
+        model.addAttribute("comparisonRequest", new ComparisonRequest());
+        return "index";
+    }
+
+    @PostMapping("/compare")
+    public String compare(
+            @Valid ComparisonRequest comparisonRequest,
+            BindingResult bindingResult,
+            Model model) {
+
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("generationRequest", new GenerationRequest());
+            return "index";
+        }
+
+        String prompt = comparisonRequest.getPrompt();
+        log.info("Running LLM comparison for prompt: '{}'", prompt);
+
+        ComparisonResult result = comparisonService.compare(prompt);
+
+        model.addAttribute("comparison", result);
+        model.addAttribute("comparisonRequest", comparisonRequest);
+        log.info("Rendering comparison result page");
+        return "compare";
     }
 }
