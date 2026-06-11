@@ -1,10 +1,6 @@
 package com.example.explainable.controller;
 
-import com.example.explainable.model.ComparisonRequest;
-import com.example.explainable.model.ComparisonResult;
-import com.example.explainable.model.GenerationRequest;
-import com.example.explainable.model.GenerationResult;
-import com.example.explainable.model.PromptFragment;
+import com.example.explainable.model.*;
 import com.example.explainable.service.*;
 import com.example.explainable.service.impl.LlmPromptFragmentExtractor;
 import jakarta.validation.Valid;
@@ -33,6 +29,7 @@ public class HomeController {
     public String index(Model model) {
         model.addAttribute("generationRequest", new GenerationRequest());
         model.addAttribute("comparisonRequest", new ComparisonRequest());
+        model.addAttribute("llmProviders", LlmProvider.values());
         return "index";
     }
 
@@ -44,17 +41,22 @@ public class HomeController {
 
         if (bindingResult.hasErrors()) {
             model.addAttribute("comparisonRequest", new ComparisonRequest());
+            model.addAttribute("llmProviders", LlmProvider.values());
             return "index";
         }
 
         String prompt = generationRequest.getPrompt();
-        log.info("Processing prompt: '{}'", prompt);
+        LlmProvider provider = generationRequest.getLlmProvider() != null
+                ? generationRequest.getLlmProvider()
+                : LlmProvider.GROQ;
+
+        log.info("Processing prompt: '{}' with provider={}", prompt, provider);
 
         List<String> rawFragments = extractor.extract(prompt);
         log.info("Extracted {} fragments: {}", rawFragments.size(), rawFragments);
 
-        var ui = htmlGenerationService.generate(prompt);
-        log.info("HTML generated, title='{}'", ui.title());
+        var ui = htmlGenerationService.generate(prompt, provider);
+        log.info("HTML generated, title='{}', provider={}", ui.title(), provider);
 
         List<PromptFragment> attributedFragments = attributionService.computeShapleyAttribution(prompt, rawFragments, ui);
         boolean shapleyUsed = true;
@@ -79,6 +81,7 @@ public class HomeController {
         result.setSuggestions(explanationService.refinePromptSuggestions(prompt));
         result.setConsistent(consistent);
         result.setShapleyUsed(shapleyUsed);
+        result.setLlmProvider(provider);
 
         model.addAttribute("result", result);
         model.addAttribute("generationRequest", generationRequest);
@@ -116,4 +119,10 @@ public class HomeController {
         log.info("Rendering comparison result page");
         return "compare";
     }
+
+    @GetMapping("/error")
+    public String error(Model model) {
+        return "error";
+    }
+
 }

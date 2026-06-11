@@ -17,4 +17,5 @@ public class GenerationResult {
     private boolean shapleyUsed;
     private List<PromptFragment> fragments;
     private List<String> suggestions;
+    private LlmProvider llmProvider;
 }

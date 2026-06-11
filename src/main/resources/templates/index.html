@@ -27,6 +27,16 @@
         <div id="tab-generate" class="tab-pane active">
             <div class="form-card">
                 <form th:action="@{/generate}" th:object="${generationRequest}" method="post">
+                    <div class="provider-selector provider-selector-row">
+                        <label class="provider-label">🤖 LLM Model</label>
+                        <div class="provider-select-wrapper">
+                            <select th:field="*{llmProvider}" class="provider-select">
+                                <option value="GROQ">Groq · Llama 3.3 70B</option>
+                                <option value="GEMINI">Google · Gemini 2.0 Flash</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <label for="prompt">Wpisz prompt</label>
                     <textarea id="prompt" th:field="*{prompt}" rows="8"
                               placeholder="Np. dashboard for todo app with dark theme and login"></textarea>

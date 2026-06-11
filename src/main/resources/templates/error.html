@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error – Explainable UI Generator</title>
+    <link rel="stylesheet" th:href="@{/error.css}">
+</head>
+<body>
+<div class="app-shell">
+    <div class="topbar">
+        <h1>Explainable UI Generator</h1>
+        <p class="muted">Prompt → HTML/CSS → preview → explainability</p>
+    </div>
+
+    <div class="error-card">
+        <div class="error-icon">
+            !
+        </div>
+
+        <div class="error-status" th:if="${status}" th:text="${status}">500</div>
+        <div class="error-status" th:unless="${status}">500</div>
+
+        <div class="error-message">
+            <span th:if="${error}" th:text="${error}">Internal Server Error</span>
+            <span th:unless="${error}">Unexpected Error</span>
+        </div>
+
+        <p th:if="${message} and ${message != ''}" th:text="${message}"
+           style="color: #cbd5e1; margin-bottom: 1rem;">
+            Something went wrong while processing your request.
+        </p>
+        <p th:unless="${message} and ${message != ''}">
+            We encountered an unexpected issue. Please try again later.
+        </p>
+
+        <a href="/" class="home-button">Back to Home</a>
+
+        <div class="footer-note">
+            <hr>
+            <span>Use the form on the home page to generate UI with Groq or Gemini</span>
+        </div>
+    </div>
+</div>
+</body>
+</html>
