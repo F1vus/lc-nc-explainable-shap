@@ -72,6 +72,12 @@ public class HomeController {
         String explanation = explanationService.explain(ui.summary(), attributedFragments);
         boolean consistent = explanationService.consistencyTest(prompt, ablatedPrompt);
 
+        // ── Run the full consistency test with real LLM ──────────────────
+        ExplanationService.ConsistencyTestResult consistencyResult =
+                explanationService.runConsistencyTest(prompt, attributedFragments, ui.html(), provider);
+        log.info("Consistency test done: removed='{}', reducedHtmlLength={}",
+                consistencyResult.removedFragment(), consistencyResult.reducedHtml().length());
+
         GenerationResult result = new GenerationResult();
         result.setPrompt(prompt);
         result.setHtml(ui.html());
@@ -82,6 +88,10 @@ public class HomeController {
         result.setConsistent(consistent);
         result.setShapleyUsed(shapleyUsed);
         result.setLlmProvider(provider);
+
+        result.setConsistencyRemovedFragment(consistencyResult.removedFragment());
+        result.setConsistencyOriginalHtml(consistencyResult.originalHtml());
+        result.setConsistencyReducedHtml(consistencyResult.reducedHtml());
 
         model.addAttribute("result", result);
         model.addAttribute("generationRequest", generationRequest);

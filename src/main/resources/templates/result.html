@@ -308,6 +308,51 @@
                 height: 640px;
             }
         }
+
+        /* ── Consistency Test ─────────────────────────────────────── */
+        .consistency-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .consistency-col {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .consistency-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+
+        .consistency-frame {
+            width: 100%;
+            height: 520px;
+            border: 0;
+            border-radius: 14px;
+            background: #fff;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+        }
+
+        .consistency-removed-badge {
+            display: inline-block;
+            margin-left: 6px;
+            padding: 2px 10px;
+            border-radius: 999px;
+            background: rgba(239,68,68,.14);
+            color: #fca5a5;
+            border: 1px solid rgba(239,68,68,.22);
+            font-size: 13px;
+        }
+
+        @media (max-width: 1200px) {
+            .consistency-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <script>
@@ -403,20 +448,20 @@
                 </div>
             </section>
 
-<!--            <section class="card">-->
-<!--                <div class="card-header">-->
-<!--                    <h2>Consistency test details</h2>-->
-<!--                </div>-->
-<!--                <div class="card-body">-->
-<!--                    <p class="muted small">-->
-<!--                        Compare the original generation against the version with the top fragment removed.-->
-<!--                    </p>-->
-<!--                    <p class="small">-->
-<!--                        Status:-->
-<!--                        <strong th:text="${result.consistent ? 'passed' : 'failed'}"></strong>-->
-<!--                    </p>-->
-<!--                </div>-->
-<!--            </section>-->
+            <!--            <section class="card">-->
+            <!--                <div class="card-header">-->
+            <!--                    <h2>Consistency test details</h2>-->
+            <!--                </div>-->
+            <!--                <div class="card-body">-->
+            <!--                    <p class="muted small">-->
+            <!--                        Compare the original generation against the version with the top fragment removed.-->
+            <!--                    </p>-->
+            <!--                    <p class="small">-->
+            <!--                        Status:-->
+            <!--                        <strong th:text="${result.consistent ? 'passed' : 'failed'}"></strong>-->
+            <!--                    </p>-->
+            <!--                </div>-->
+            <!--            </section>-->
         </aside>
 
         <section class="card" style="grid-column: 1 / -1;">
@@ -453,6 +498,38 @@
             </div>
             <div class="card-body">
                 <canvas id="shapleyChart" height="100"></canvas>
+            </div>
+        </section>
+
+        <!-- ── Consistency Test ─────────────────────────────────────────── -->
+        <section class="card consistency-section" style="grid-column: 1 / -1;"
+                 th:if="${result.consistencyRemovedFragment != null and !result.consistencyRemovedFragment.isEmpty()}">
+            <div class="card-header">
+                <h2>Attribution Consistency Test</h2>
+                <span class="badge ok" th:if="${result.consistent}">Passed</span>
+                <span class="badge fail" th:unless="${result.consistent}">Failed</span>
+            </div>
+            <div class="card-body">
+                <p class="muted small" style="margin: 0 0 14px;">
+                    The consistency axiom guarantees: if removing the top-scored fragment changes the output,
+                    that fragment's SHAP value was meaningful. Removed fragment:
+                    <strong th:text="${result.consistencyRemovedFragment}" class="consistency-removed-badge"></strong>
+                </p>
+
+                <div class="consistency-grid">
+                    <div class="consistency-col">
+                        <div class="consistency-label">Original Prototype</div>
+                        <iframe class="consistency-frame"
+                                th:attr="srcdoc=${result.consistencyOriginalHtml}"
+                                sandbox></iframe>
+                    </div>
+                    <div class="consistency-col">
+                        <div class="consistency-label">After Removing Top Fragment</div>
+                        <iframe class="consistency-frame"
+                                th:attr="srcdoc=${result.consistencyReducedHtml}"
+                                sandbox></iframe>
+                    </div>
+                </div>
             </div>
         </section>
 

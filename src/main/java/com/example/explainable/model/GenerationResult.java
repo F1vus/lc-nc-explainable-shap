@@ -18,4 +18,9 @@ public class GenerationResult {
     private List<PromptFragment> fragments;
     private List<String> suggestions;
     private LlmProvider llmProvider;
+
+    // Consistency test
+    private String consistencyRemovedFragment;
+    private String consistencyOriginalHtml;
+    private String consistencyReducedHtml;
 }

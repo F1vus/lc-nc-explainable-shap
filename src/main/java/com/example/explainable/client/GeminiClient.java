@@ -4,6 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.util.retry.Retry;
 
 import java.time.Duration;
 import java.util.List;
@@ -53,6 +55,11 @@ public class GeminiClient {
                     .bodyValue(requestBody)
                     .retrieve()
                     .bodyToMono(Map.class)
+                    .retryWhen(Retry.backoff(3, Duration.ofMillis(500)) // Retry 3 times, starting with a 500ms delay
+                            .filter(throwable -> isTransientError(throwable)) // Only retry on 503 or network glitches
+                            .doBeforeRetry(retrySignal -> log.warn("Gemini API returned a transient error. Retrying attempt #{} due to: {}",
+                                    retrySignal.totalRetries() + 1, retrySignal.failure().getMessage()))
+                    )
                     .block(Duration.ofSeconds(60));
 
             long tookMs = Duration.ofNanos(System.nanoTime() - startNs).toMillis();
@@ -92,5 +99,13 @@ public class GeminiClient {
             log.error("Gemini request failed after {} ms: {}", tookMs, e.getMessage(), e);
             throw e;
         }
+    }
+
+    private boolean isTransientError(Throwable throwable) {
+        if (throwable instanceof WebClientResponseException responseException) {
+            int statusCode = responseException.getStatusCode().value();
+            return statusCode == 503 || statusCode == 429;
+        }
+        return throwable instanceof java.io.IOException;
     }
 }
