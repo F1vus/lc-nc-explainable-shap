@@ -3,6 +3,8 @@ package com.example.explainable.model;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.util.List;
+
 @Getter
 @Builder
 public class ComparisonResult {
@@ -16,6 +18,7 @@ public class ComparisonResult {
     private final long groqLatencyMs;
     private final boolean groqSuccess;
     private final String groqError;
+    private final List<PromptFragment> groqFragments;
 
     // Gemini / LLM-B result
     private final String geminiHtml;
@@ -24,6 +27,7 @@ public class ComparisonResult {
     private final long geminiLatencyMs;
     private final boolean geminiSuccess;
     private final String geminiError;
+    private final List<PromptFragment> geminiFragments;
 
     // Provider display names
     private final String providerAName;

@@ -3,11 +3,15 @@ package com.example.explainable.service;
 import com.example.explainable.client.GeminiClient;
 import com.example.explainable.client.LlmClient;
 import com.example.explainable.model.ComparisonResult;
+import com.example.explainable.model.GeneratedUi;
 import com.example.explainable.model.LlmProvider;
+import com.example.explainable.model.PromptFragment;
+import com.example.explainable.service.impl.LlmPromptFragmentExtractor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -19,6 +23,8 @@ public class LlmComparisonService {
 
     private final LlmClient groqClient;
     private final GeminiClient geminiClient;
+    private final LlmPromptFragmentExtractor fragmentExtractor;
+    private final ShapleyAttributionService attributionService;
 
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
@@ -49,7 +55,8 @@ public class LlmComparisonService {
             """;
 
     /**
-     * Runs both LLMs in parallel for the same prompt and returns a ComparisonResult.
+     * Runs both LLMs in parallel for the same prompt and returns a ComparisonResult,
+     * including per-model Shapley attribution.
      */
     public ComparisonResult compare(String prompt) {
         log.info("Starting LLM comparison for prompt: '{}'", prompt);
@@ -83,6 +90,13 @@ public class LlmComparisonService {
         if (geminiHtml.isBlank()) geminiHtml = geminiResult.content;
         if (geminiSummary.isBlank()) geminiSummary = "Generated UI based on the provided prompt.";
 
+        // Compute Shapley attribution per model
+        List<String> fragments = extractFragmentsSafely(prompt);
+        List<PromptFragment> groqFragments = computeAttributionSafely(prompt, fragments,
+                new GeneratedUi(groqHtml, groqSummary, ""), groqResult.success);
+        List<PromptFragment> geminiFragments = computeAttributionSafely(prompt, fragments,
+                new GeneratedUi(geminiHtml, geminiSummary, ""), geminiResult.success);
+
         return ComparisonResult.builder()
                 .prompt(prompt)
                 .groqHtml(groqHtml)
@@ -91,17 +105,39 @@ public class LlmComparisonService {
                 .groqLatencyMs(groqResult.latencyMs)
                 .groqSuccess(groqResult.success)
                 .groqError(groqResult.error)
+                .groqFragments(groqFragments)
                 .geminiHtml(geminiHtml)
                 .geminiSummary(geminiSummary)
                 .geminiExplanation("")
                 .geminiLatencyMs(geminiResult.latencyMs)
                 .geminiSuccess(geminiResult.success)
                 .geminiError(geminiResult.error)
+                .geminiFragments(geminiFragments)
                 .providerAName(LlmProvider.GROQ.getDisplayName())
                 .providerBName(LlmProvider.GEMINI.getDisplayName())
                 .modelAId(LlmProvider.GROQ.getModelId())
                 .modelBId(LlmProvider.GEMINI.getModelId())
                 .build();
+    }
+
+    private List<String> extractFragmentsSafely(String prompt) {
+        try {
+            return fragmentExtractor.extract(prompt);
+        } catch (Exception e) {
+            log.warn("Fragment extraction failed, skipping SHAP: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
+    private List<PromptFragment> computeAttributionSafely(String prompt, List<String> fragments,
+                                                          GeneratedUi ui, boolean modelSuccess) {
+        if (!modelSuccess || fragments.isEmpty()) return List.of();
+        try {
+            return attributionService.computeShapleyAttribution(prompt, fragments, ui);
+        } catch (Exception e) {
+            log.warn("Shapley attribution failed for model: {}", e.getMessage());
+            return List.of();
+        }
     }
 
     private SingleResult callWithTiming(String name, java.util.function.Supplier<String> call) {

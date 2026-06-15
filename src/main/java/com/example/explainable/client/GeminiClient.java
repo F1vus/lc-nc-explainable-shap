@@ -32,7 +32,6 @@ public class GeminiClient {
     public String callLlm(String prompt) {
         long startNs = System.nanoTime();
 
-        // Gemini uses a different request structure than OpenAI-compatible APIs
         Map<String, Object> requestBody = Map.of(
                 "contents", List.of(
                         Map.of("parts", List.of(Map.of("text", prompt)))

@@ -1,600 +1,656 @@
 <!doctype html>
 <html lang="pl" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Generated Result</title>
-    <link rel="stylesheet" th:href="@{/app.css}">
+    <link rel="stylesheet" th:href="@{/app.css}" />
     <style>
-        :root {
-            --bg: #0b1220;
-            --panel: #111a2e;
-            --panel-2: #16213a;
-            --border: rgba(255,255,255,.08);
-            --text: #e5e7eb;
-            --muted: #94a3b8;
-            --accent: #60a5fa;
-            --accent-2: #22c55e;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --code: #0f172a;
-            --shadow: 0 18px 45px rgba(0,0,0,.28);
-            --radius: 20px;
-        }
+      :root {
+        --bg: #0b1220;
+        --panel: #111a2e;
+        --panel-2: #16213a;
+        --border: rgba(255, 255, 255, 0.08);
+        --text: #e5e7eb;
+        --muted: #94a3b8;
+        --accent: #60a5fa;
+        --accent-2: #22c55e;
+        --danger: #ef4444;
+        --warning: #f59e0b;
+        --code: #0f172a;
+        --shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+        --radius: 20px;
+      }
 
-        * { box-sizing: border-box; }
+      * {
+        box-sizing: border-box;
+      }
 
-        body {
-            margin: 0;
-            background:
-                    radial-gradient(circle at top left, rgba(96,165,250,.12), transparent 28%),
-                    radial-gradient(circle at top right, rgba(34,197,94,.10), transparent 24%),
-                    var(--bg);
-            color: var(--text);
-            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            line-height: 1.5;
-        }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(
+            circle at top left,
+            rgba(96, 165, 250, 0.12),
+            transparent 28%
+          ),
+          radial-gradient(
+            circle at top right,
+            rgba(34, 197, 94, 0.1),
+            transparent 24%
+          ),
+          var(--bg);
+        color: var(--text);
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        line-height: 1.5;
+      }
 
-        a { color: inherit; text-decoration: none; }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
 
-        .page {
-            max-width: 1600px;
-            margin: 0 auto;
-            padding: 24px;
-        }
+      .page {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 24px;
+      }
 
-        .view-toggle {
-            display: flex;
-            gap: 8px;
-        }
+      .view-toggle {
+        display: flex;
+        gap: 8px;
+      }
 
-        .view-toggle button {
-            padding: 6px 12px;
-            border-radius: 10px;
-            border: 1px solid rgba(255,255,255,.1);
-            background: rgba(255,255,255,.05);
-            color: white;
-            cursor: pointer;
-        }
+      .view-toggle button {
+        padding: 6px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.05);
+        color: white;
+        cursor: pointer;
+      }
 
-        .view-toggle button:hover {
-            background: rgba(96,165,250,.2);
-        }
+      .view-toggle button:hover {
+        background: rgba(96, 165, 250, 0.2);
+      }
 
-        .topbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 16px;
-            padding: 20px 22px;
-            background: rgba(17,26,46,.82);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            backdrop-filter: blur(14px);
-        }
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 20px 22px;
+        background: rgba(17, 26, 46, 0.82);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(14px);
+      }
 
-        .topbar h1 {
-            margin: 0;
-            font-size: 28px;
-            line-height: 1.1;
-        }
+      .topbar h1 {
+        margin: 0;
+        font-size: 28px;
+        line-height: 1.1;
+      }
 
-        .topbar p {
-            margin: 8px 0 0;
-            color: var(--muted);
-        }
+      .topbar p {
+        margin: 8px 0 0;
+        color: var(--muted);
+      }
 
-        .back-link {
-            padding: 10px 14px;
-            border-radius: 12px;
-            background: rgba(255,255,255,.04);
-            border: 1px solid var(--border);
-            color: var(--text);
-            white-space: nowrap;
-        }
+      .back-link {
+        padding: 10px 14px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border);
+        color: var(--text);
+        white-space: nowrap;
+      }
 
-        .summary {
-            margin-top: 18px;
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 14px;
-        }
+      .summary {
+        margin-top: 18px;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+      }
 
-        .chip-card {
-            background: rgba(17,26,46,.80);
-            border: 1px solid var(--border);
-            border-radius: 18px;
-            padding: 16px;
-            box-shadow: var(--shadow);
-        }
+      .chip-card {
+        background: rgba(17, 26, 46, 0.8);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 16px;
+        box-shadow: var(--shadow);
+      }
 
-        .chip-label {
-            color: var(--muted);
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: .08em;
-            margin-bottom: 8px;
-        }
+      .chip-label {
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 8px;
+      }
 
-        .chip-value {
-            font-size: 18px;
-            font-weight: 700;
-            word-break: break-word;
-        }
+      .chip-value {
+        font-size: 18px;
+        font-weight: 700;
+        word-break: break-word;
+      }
 
-        .grid {
-            margin-top: 18px;
-            display: grid;
-            grid-template-columns: 1.2fr .8fr;
-            gap: 18px;
-            align-items: start;
-        }
+      .grid {
+        margin-top: 18px;
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 18px;
+        align-items: start;
+      }
 
-        .stack {
-            display: grid;
-            gap: 18px;
-        }
+      .stack {
+        display: grid;
+        gap: 18px;
+      }
 
-        .card {
-            background: rgba(17,26,46,.82);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            overflow: hidden;
-        }
+      .card {
+        background: rgba(17, 26, 46, 0.82);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
 
-        .card-header {
-            padding: 16px 18px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            background: rgba(255,255,255,.02);
-        }
+      .card-header {
+        padding: 16px 18px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        background: rgba(255, 255, 255, 0.02);
+      }
 
-        .card-header h2 {
-            margin: 0;
-            font-size: 18px;
-        }
+      .card-header h2 {
+        margin: 0;
+        font-size: 18px;
+      }
 
-        .card-body {
-            padding: 18px;
-        }
+      .card-body {
+        padding: 18px;
+      }
 
-        .muted {
-            color: var(--muted);
-        }
+      .muted {
+        color: var(--muted);
+      }
 
-        .preview-wrap {
-            display: grid;
-            gap: 12px;
+      .preview-wrap {
+        display: grid;
+        gap: 12px;
+      }
+
+      .preview-frame {
+        width: 100%;
+        height: 760px;
+        border: 0;
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      }
+
+      .preview-toolbar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .btn-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 12px;
+        background: rgba(96, 165, 250, 0.12);
+        border: 1px solid rgba(96, 165, 250, 0.22);
+        color: #bfdbfe;
+      }
+
+      pre {
+        margin: 0;
+        padding: 16px;
+        background: var(--code);
+        border-radius: 14px;
+        overflow: auto;
+        color: #e2e8f0;
+        font-size: 13px;
+        line-height: 1.55;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .table-wrap {
+        overflow: auto;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 680px;
+        background: rgba(15, 23, 42, 0.92);
+      }
+
+      th,
+      td {
+        padding: 12px 14px;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        vertical-align: top;
+      }
+
+      th {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #cbd5e1;
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      td {
+        color: #e5e7eb;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        border: 1px solid transparent;
+      }
+
+      .badge.ok {
+        background: rgba(34, 197, 94, 0.12);
+        color: #86efac;
+        border-color: rgba(34, 197, 94, 0.18);
+      }
+
+      .badge.fail {
+        background: rgba(239, 68, 68, 0.12);
+        color: #fca5a5;
+        border-color: rgba(239, 68, 68, 0.18);
+      }
+
+      .badge.info {
+        background: rgba(96, 165, 250, 0.12);
+        color: #bfdbfe;
+        border-color: rgba(96, 165, 250, 0.18);
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      li + li {
+        margin-top: 8px;
+      }
+
+      .two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+
+      .small {
+        font-size: 13px;
+      }
+
+      .section-note {
+        margin-top: 10px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      @media (max-width: 1200px) {
+        .grid,
+        .summary,
+        .two-col {
+          grid-template-columns: 1fr;
         }
 
         .preview-frame {
-            width: 100%;
-            height: 760px;
-            border: 0;
-            border-radius: 16px;
-            background: #fff;
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+          height: 640px;
         }
+      }
 
-        .preview-toolbar {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            color: var(--muted);
-            font-size: 14px;
-        }
+      /* ── Consistency Test ─────────────────────────────────────── */
+      .consistency-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
 
-        .btn-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 14px;
-            border-radius: 12px;
-            background: rgba(96,165,250,.12);
-            border: 1px solid rgba(96,165,250,.22);
-            color: #bfdbfe;
-        }
+      .consistency-col {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
 
-        pre {
-            margin: 0;
-            padding: 16px;
-            background: var(--code);
-            border-radius: 14px;
-            overflow: auto;
-            color: #e2e8f0;
-            font-size: 13px;
-            line-height: 1.55;
-            border: 1px solid rgba(255,255,255,.08);
-        }
+      .consistency-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
 
-        .table-wrap {
-            overflow: auto;
-            border-radius: 14px;
-            border: 1px solid rgba(255,255,255,.08);
-        }
+      .consistency-frame {
+        width: 100%;
+        height: 520px;
+        border: 0;
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 680px;
-            background: rgba(15,23,42,.92);
-        }
+      .consistency-removed-badge {
+        display: inline-block;
+        margin-left: 6px;
+        padding: 2px 10px;
+        border-radius: 999px;
+        background: rgba(239, 68, 68, 0.14);
+        color: #fca5a5;
+        border: 1px solid rgba(239, 68, 68, 0.22);
+        font-size: 13px;
+      }
 
-        th, td {
-            padding: 12px 14px;
-            text-align: left;
-            border-bottom: 1px solid rgba(255,255,255,.06);
-            vertical-align: top;
-        }
-
-        th {
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: .06em;
-            color: #cbd5e1;
-            background: rgba(255,255,255,.03);
-        }
-
-        td {
-            color: #e5e7eb;
-        }
-
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 6px 10px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 700;
-            border: 1px solid transparent;
-        }
-
-        .badge.ok {
-            background: rgba(34,197,94,.12);
-            color: #86efac;
-            border-color: rgba(34,197,94,.18);
-        }
-
-        .badge.fail {
-            background: rgba(239,68,68,.12);
-            color: #fca5a5;
-            border-color: rgba(239,68,68,.18);
-        }
-
-        .badge.info {
-            background: rgba(96,165,250,.12);
-            color: #bfdbfe;
-            border-color: rgba(96,165,250,.18);
-        }
-
-        ul {
-            margin: 0;
-            padding-left: 18px;
-        }
-
-        li + li {
-            margin-top: 8px;
-        }
-
-        .two-col {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 14px;
-        }
-
-        .small {
-            font-size: 13px;
-        }
-
-        .section-note {
-            margin-top: 10px;
-            font-size: 13px;
-            color: var(--muted);
-        }
-
-        @media (max-width: 1200px) {
-            .grid,
-            .summary,
-            .two-col {
-                grid-template-columns: 1fr;
-            }
-
-            .preview-frame {
-                height: 640px;
-            }
-        }
-
-        /* ── Consistency Test ─────────────────────────────────────── */
+      @media (max-width: 1200px) {
         .consistency-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 14px;
+          grid-template-columns: 1fr;
         }
-
-        .consistency-col {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .consistency-label {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: .06em;
-        }
-
-        .consistency-frame {
-            width: 100%;
-            height: 520px;
-            border: 0;
-            border-radius: 14px;
-            background: #fff;
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
-        }
-
-        .consistency-removed-badge {
-            display: inline-block;
-            margin-left: 6px;
-            padding: 2px 10px;
-            border-radius: 999px;
-            background: rgba(239,68,68,.14);
-            color: #fca5a5;
-            border: 1px solid rgba(239,68,68,.22);
-            font-size: 13px;
-        }
-
-        @media (max-width: 1200px) {
-            .consistency-grid { grid-template-columns: 1fr; }
-        }
+      }
     </style>
-</head>
-<script>
+  </head>
+  <script>
     function showPreview() {
-        document.getElementById("previewBlock").style.display = "block";
-        document.getElementById("codeBlock").style.display = "none";
+      document.getElementById("previewBlock").style.display = "block";
+      document.getElementById("codeBlock").style.display = "none";
     }
 
     function showCode() {
-        document.getElementById("previewBlock").style.display = "none";
-        document.getElementById("codeBlock").style.display = "block";
+      document.getElementById("previewBlock").style.display = "none";
+      document.getElementById("codeBlock").style.display = "block";
     }
-</script>
-<body>
-<div class="page">
-    <header class="topbar">
+  </script>
+  <body>
+    <div class="page">
+      <header class="topbar">
         <div>
-            <h1>Generated result</h1>
-            <p>Preview, generated code, attribution, and explanation of the UI output.</p>
+          <h1>Generated result</h1>
+          <p>
+            Preview, generated code, attribution, and explanation of the UI
+            output.
+          </p>
         </div>
         <a class="back-link" th:href="@{/}">Back</a>
-    </header>
+      </header>
 
-    <section class="summary">
+      <section class="summary">
         <div class="chip-card">
-            <div class="chip-label">Prompt</div>
-            <div class="chip-value small" th:text="${result.prompt}"></div>
+          <div class="chip-label">Prompt</div>
+          <div class="chip-value small" th:text="${result.prompt}"></div>
         </div>
 
         <div class="chip-card">
-            <div class="chip-label">Fragments</div>
-            <div class="chip-value" th:text="${#lists.size(result.fragments)}"></div>
+          <div class="chip-label">Fragments</div>
+          <div
+            class="chip-value"
+            th:text="${#lists.size(result.fragments)}"
+          ></div>
         </div>
 
         <div class="chip-card">
-            <div class="chip-label">Suggestions</div>
-            <div class="chip-value" th:text="${#lists.size(result.suggestions)}"></div>
+          <div class="chip-label">Suggestions</div>
+          <div
+            class="chip-value"
+            th:text="${#lists.size(result.suggestions)}"
+          ></div>
         </div>
-    </section>
+      </section>
 
-    <main class="grid">
+      <main class="grid">
         <section class="card">
-            <div class="card-header">
-                <h2>UI Output</h2>
+          <div class="card-header">
+            <h2>UI Output</h2>
 
-                <div class="view-toggle">
-                    <button onclick="showPreview()" id="btnPreview">Preview</button>
-                    <button onclick="showCode()" id="btnCode">Code</button>
-                </div>
+            <div class="view-toggle">
+              <button onclick="showPreview()" id="btnPreview">Preview</button>
+              <button onclick="showCode()" id="btnCode">Code</button>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <!-- PREVIEW -->
+            <div id="previewBlock">
+              <iframe
+                class="preview-frame"
+                th:if="${result.previewHtml != null}"
+                th:attr="srcdoc=${result.previewHtml}"
+                sandbox
+              >
+              </iframe>
             </div>
 
-            <div class="card-body">
-
-                <!-- PREVIEW -->
-                <div id="previewBlock">
-                    <iframe
-                            class="preview-frame"
-                            th:if="${result.previewHtml != null}"
-                            th:attr="srcdoc=${result.previewHtml}"
-                            sandbox>
-                    </iframe>
-                </div>
-
-                <!-- CODE -->
-                <div id="codeBlock" style="display:none;">
-                    <pre th:text="${result.html}"></pre>
-                </div>
+            <!-- CODE -->
+            <div id="codeBlock" style="display: none">
+              <pre th:text="${result.html}"></pre>
             </div>
+          </div>
         </section>
 
         <aside class="stack">
-            <section class="card">
-                <div class="card-header">
-                    <h2>Explainability</h2>
-                    <span class="badge info">LLM summary</span>
-                </div>
-                <div class="card-body">
-                    <p th:text="${result.explanation}"></p>
-                    <p class="section-note">
-                        This text should describe which prompt fragments influenced the generated UI, not the internal model.
-                    </p>
-                </div>
-            </section>
+          <section class="card">
+            <div class="card-header">
+              <h2>Explainability</h2>
+              <span class="badge info">LLM summary</span>
+            </div>
+            <div class="card-body">
+              <p th:text="${result.explanation}"></p>
+              <p class="section-note">
+                This text should describe which prompt fragments influenced the
+                generated UI, not the internal model.
+              </p>
+            </div>
+          </section>
 
-            <section class="card">
-                <div class="card-header">
-                    <h2>Prompt refinement suggestions</h2>
-                </div>
-                <div class="card-body">
-                    <ul>
-                        <li th:each="item : ${result.suggestions}" th:text="${item}"></li>
-                    </ul>
-                </div>
-            </section>
+          <section class="card">
+            <div class="card-header">
+              <h2>Prompt refinement suggestions</h2>
+            </div>
+            <div class="card-body">
+              <ul>
+                <li
+                  th:each="item : ${result.suggestions}"
+                  th:text="${item}"
+                ></li>
+              </ul>
+            </div>
+          </section>
 
-            <!--            <section class="card">-->
-            <!--                <div class="card-header">-->
-            <!--                    <h2>Consistency test details</h2>-->
-            <!--                </div>-->
-            <!--                <div class="card-body">-->
-            <!--                    <p class="muted small">-->
-            <!--                        Compare the original generation against the version with the top fragment removed.-->
-            <!--                    </p>-->
-            <!--                    <p class="small">-->
-            <!--                        Status:-->
-            <!--                        <strong th:text="${result.consistent ? 'passed' : 'failed'}"></strong>-->
-            <!--                    </p>-->
-            <!--                </div>-->
-            <!--            </section>-->
+          <!--            <section class="card">-->
+          <!--                <div class="card-header">-->
+          <!--                    <h2>Consistency test details</h2>-->
+          <!--                </div>-->
+          <!--                <div class="card-body">-->
+          <!--                    <p class="muted small">-->
+          <!--                        Compare the original generation against the version with the top fragment removed.-->
+          <!--                    </p>-->
+          <!--                    <p class="small">-->
+          <!--                        Status:-->
+          <!--                        <strong th:text="${result.consistent ? 'passed' : 'failed'}"></strong>-->
+          <!--                    </p>-->
+          <!--                </div>-->
+          <!--            </section>-->
         </aside>
 
-        <section class="card" style="grid-column: 1 / -1;">
-            <div class="card-header">
-                <h2>Fragment attribution</h2>
-                <span class="badge info">Fragment → element</span>
+        <section class="card" style="grid-column: 1 / -1">
+          <div class="card-header">
+            <h2>Fragment attribution</h2>
+            <span class="badge info">Fragment → element</span>
+          </div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fragment</th>
+                    <th>Weight</th>
+                    <th>Mapped element</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr th:each="fragment : ${result.fragments}">
+                    <td th:text="${fragment.text()}"></td>
+                    <td
+                      th:text="${#numbers.formatDecimal(fragment.weight(), 1, 2)}"
+                    ></td>
+                    <td th:text="${fragment.mappedElement()}"></td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-            <div class="card-body">
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                        <tr>
-                            <th>Fragment</th>
-                            <th>Weight</th>
-                            <th>Mapped element</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr th:each="fragment : ${result.fragments}">
-                            <td th:text="${fragment.text()}"></td>
-                            <td th:text="${#numbers.formatDecimal(fragment.weight(), 1, 2)}"></td>
-                            <td th:text="${fragment.mappedElement()}"></td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+          </div>
         </section>
 
-        <section class="card" style="grid-column: 1 / -1;">
-            <div class="card-header">
-                <h2>Shapley weight chart</h2>
-                <span class="badge info">φᵢ per fragment</span>
-            </div>
-            <div class="card-body">
-                <canvas id="shapleyChart" height="100"></canvas>
-            </div>
+        <section class="card" style="grid-column: 1 / -1">
+          <div class="card-header">
+            <h2>Shapley weight chart</h2>
+            <span class="badge info">φᵢ per fragment</span>
+          </div>
+          <div class="card-body">
+            <canvas id="shapleyChart" height="100"></canvas>
+          </div>
         </section>
 
         <!-- ── Consistency Test ─────────────────────────────────────────── -->
-        <section class="card consistency-section" style="grid-column: 1 / -1;"
-                 th:if="${result.consistencyRemovedFragment != null and !result.consistencyRemovedFragment.isEmpty()}">
-            <div class="card-header">
-                <h2>Attribution Consistency Test</h2>
-                <span class="badge ok" th:if="${result.consistent}">Passed</span>
-                <span class="badge fail" th:unless="${result.consistent}">Failed</span>
-            </div>
-            <div class="card-body">
-                <p class="muted small" style="margin: 0 0 14px;">
-                    The consistency axiom guarantees: if removing the top-scored fragment changes the output,
-                    that fragment's SHAP value was meaningful. Removed fragment:
-                    <strong th:text="${result.consistencyRemovedFragment}" class="consistency-removed-badge"></strong>
-                </p>
+        <section
+          class="card consistency-section"
+          style="grid-column: 1 / -1"
+          th:if="${result.consistencyRemovedFragment != null and !result.consistencyRemovedFragment.isEmpty()}"
+        >
+          <div class="card-header">
+            <h2>Attribution Consistency Test</h2>
+            <span class="badge ok" th:if="${result.consistent}">Passed</span>
+            <span class="badge fail" th:unless="${result.consistent}"
+              >Failed</span
+            >
+          </div>
+          <div class="card-body">
+            <p class="muted small" style="margin: 0 0 14px">
+              The consistency axiom guarantees: if removing the top-scored
+              fragment changes the output, that fragment's SHAP value was
+              meaningful. Removed fragment:
+              <strong
+                th:text="${result.consistencyRemovedFragment}"
+                class="consistency-removed-badge"
+              ></strong>
+            </p>
 
-                <div class="consistency-grid">
-                    <div class="consistency-col">
-                        <div class="consistency-label">Original Prototype</div>
-                        <iframe class="consistency-frame"
-                                th:attr="srcdoc=${result.consistencyOriginalHtml}"
-                                sandbox></iframe>
-                    </div>
-                    <div class="consistency-col">
-                        <div class="consistency-label">After Removing Top Fragment</div>
-                        <iframe class="consistency-frame"
-                                th:attr="srcdoc=${result.consistencyReducedHtml}"
-                                sandbox></iframe>
-                    </div>
-                </div>
+            <div class="consistency-grid">
+              <div class="consistency-col">
+                <div class="consistency-label">Original Prototype</div>
+                <iframe
+                  class="consistency-frame"
+                  th:attr="srcdoc=${result.consistencyOriginalHtml}"
+                  sandbox
+                ></iframe>
+              </div>
+              <div class="consistency-col">
+                <div class="consistency-label">After Removing Top Fragment</div>
+                <iframe
+                  class="consistency-frame"
+                  th:attr="srcdoc=${result.consistencyReducedHtml}"
+                  sandbox
+                ></iframe>
+              </div>
             </div>
+          </div>
         </section>
+      </main>
 
-    </main>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-    <script th:inline="javascript">
-        const dark = matchMedia('(prefers-color-scheme: dark)').matches;
-        const textColor = dark ? '#e5e7eb' : '#111827';
-        const gridColor = dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+      <script th:inline="javascript">
+        const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+        const textColor = dark ? "#e5e7eb" : "#111827";
+        const gridColor = dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
 
         const fragments = /*[[${result.fragments.![text()]}]]*/ [];
-        const weights   = /*[[${result.fragments.![weight()]}]]*/ [];
+        const weights = /*[[${result.fragments.![weight()]}]]*/ [];
 
-        const colors = weights.map(w =>
-            w >= 0.7  ? 'rgba(34,197,94,0.75)'  :
-                w >= 0.45 ? 'rgba(96,165,250,0.75)' :
-                    'rgba(239,68,68,0.65)'
+        const colors = weights.map((w) =>
+          w >= 0.7
+            ? "rgba(34,197,94,0.75)"
+            : w >= 0.45
+              ? "rgba(96,165,250,0.75)"
+              : "rgba(239,68,68,0.65)",
         );
-        const borders = weights.map(w =>
-            w >= 0.7  ? '#16a34a' :
-                w >= 0.45 ? '#2563eb' :
-                    '#dc2626'
+        const borders = weights.map((w) =>
+          w >= 0.7 ? "#16a34a" : w >= 0.45 ? "#2563eb" : "#dc2626",
         );
 
-        new Chart(document.getElementById('shapleyChart'), {
-            type: 'bar',
-            data: {
-                labels: fragments,
-                datasets: [{
-                    label: 'Shapley weight φᵢ',
-                    data: weights,
-                    backgroundColor: colors,
-                    borderColor: borders,
-                    borderWidth: 1.5,
-                    borderRadius: 6,
-                }]
-            },
-            options: {
-                indexAxis: 'y',
-                responsive: true,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: ctx => `φᵢ = ${ctx.raw.toFixed(3)}`
-                        }
-                    }
+        new Chart(document.getElementById("shapleyChart"), {
+          type: "bar",
+          data: {
+            labels: fragments,
+            datasets: [
+              {
+                label: "Shapley weight φᵢ",
+                data: weights,
+                backgroundColor: colors,
+                borderColor: borders,
+                borderWidth: 1.5,
+                borderRadius: 6,
+              },
+            ],
+          },
+          options: {
+            indexAxis: "y",
+            responsive: true,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => `φᵢ = ${ctx.raw.toFixed(3)}`,
                 },
-                scales: {
-                    x: {
-                        min: 0, max: 1,
-                        ticks: { color: textColor, font: { size: 12 } },
-                        grid:  { color: gridColor },
-                        title: { display: true, text: 'Shapley weight φᵢ',
-                            color: textColor, font: { size: 12 } }
-                    },
-                    y: {
-                        ticks: { color: textColor, font: { size: 13 } },
-                        grid:  { display: false }
-                    }
-                }
-            }
+              },
+            },
+            scales: {
+              x: {
+                min: 0,
+                max: 1,
+                ticks: { color: textColor, font: { size: 12 } },
+                grid: { color: gridColor },
+                title: {
+                  display: true,
+                  text: "Shapley weight φᵢ",
+                  color: textColor,
+                  font: { size: 12 },
+                },
+              },
+              y: {
+                ticks: { color: textColor, font: { size: 13 } },
+                grid: { display: false },
+              },
+            },
+          },
         });
-    </script>
-</div>
-</body>
+      </script>
+    </div>
+  </body>
 </html>
