@@ -17,13 +17,11 @@
 
     <main class="panel">
 
-        <!-- Tab bar -->
         <div class="tab-bar">
             <button class="tab-btn active" onclick="switchTab('generate', this)">⚡ Generate</button>
             <button class="tab-btn" onclick="switchTab('compare', this)">⚖️ Compare LLMs</button>
         </div>
 
-        <!-- Tab: Generate -->
         <div id="tab-generate" class="tab-pane active">
             <div class="form-card">
                 <form th:action="@{/generate}" th:object="${generationRequest}" method="post">
@@ -50,7 +48,6 @@
             </section>
         </div>
 
-        <!-- Tab: Compare LLMs -->
         <div id="tab-compare" class="tab-pane">
             <div class="form-card">
                 <div class="compare-badge">⚖️ Side-by-side LLM comparison</div>
@@ -75,7 +72,31 @@
     </main>
 </div>
 
+<!-- ===== LOADER OVERLAY ===== -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-box">
+        <div class="loader-orbit">
+            <div class="loader-core"></div>
+            <div class="loader-ring"></div>
+            <div class="loader-ring loader-ring-2"></div>
+        </div>
+
+        <div id="loadingTitle" class="loading-title">Generating UI…</div>
+
+        <div class="loading-track">
+            <div id="trackFill" class="loading-track-fill"></div>
+        </div>
+
+        <div id="loadingStep" class="loading-step">Wysyłanie promptu do modelu…</div>
+
+        <div class="loading-dots">
+            <span></span><span></span><span></span>
+        </div>
+    </div>
+</div>
+
 <script>
+    // ===== tab switching =====
     function switchTab(name, btn) {
         document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -88,6 +109,123 @@
     if (compareErrors) {
         document.querySelectorAll('.tab-btn')[1].click();
     }
+
+    // ===== LOADER LOGIC =====
+    const overlay = document.getElementById('loadingOverlay');
+    const loadingTitle = document.getElementById('loadingTitle');
+    const loadingStep = document.getElementById('loadingStep');
+    const trackFill = document.getElementById('trackFill');
+
+    const generateSteps = [
+        'Wysyłanie promptu do modelu…',
+        'Generowanie HTML/CSS…',
+        'Liczenie atrybucji Shapley…',
+        'Test spójności (ablacja fragmentu)…',
+        'Renderowanie wyniku…'
+    ];
+
+    const compareSteps = [
+        'Wysyłanie promptu do Groq i Gemini…',
+        'Oczekiwanie na odpowiedzi obu modeli…',
+        'Liczenie atrybucji Shapley dla Groq…',
+        'Liczenie atrybucji Shapley dla Gemini…',
+        'Renderowanie porównania…'
+    ];
+
+    let stepInterval = null;
+
+    function startLoading(title, steps) {
+        // clear any previous interval
+        if (stepInterval) {
+            clearInterval(stepInterval);
+            stepInterval = null;
+        }
+
+        // reset UI
+        loadingTitle.textContent = title;
+        let stepIndex = 0;
+        loadingStep.textContent = steps[0] || 'Working…';
+        trackFill.style.width = '6%';
+
+        // show overlay
+        overlay.classList.add('active');
+
+        const maxPercent = 92;
+
+        stepInterval = setInterval(() => {
+            if (stepIndex < steps.length - 1) {
+                stepIndex++;
+                loadingStep.textContent = steps[stepIndex];
+                const target = Math.min(
+                    maxPercent,
+                    6 + ((stepIndex + 1) / steps.length) * (maxPercent - 6)
+                );
+                trackFill.style.width = target + '%';
+            } else {
+                // all steps shown — keep the last step visible
+                clearInterval(stepInterval);
+                stepInterval = null;
+                trackFill.style.width = '96%';
+            }
+        }, 2000);
+    }
+
+    function stopLoading() {
+        if (stepInterval) {
+            clearInterval(stepInterval);
+            stepInterval = null;
+        }
+        overlay.classList.remove('active');
+        // reset track for next time
+        trackFill.style.width = '6%';
+        loadingStep.textContent = 'Wysyłanie promptu do modelu…';
+    }
+
+    // ===== attach to forms =====
+    document.querySelector('#tab-generate form').addEventListener('submit', function(e) {
+        if (!this.checkValidity()) return;
+        startLoading('Generowanie UI…', generateSteps);
+    });
+
+    document.querySelector('#tab-compare form').addEventListener('submit', function(e) {
+        if (!this.checkValidity()) return;
+        startLoading('Porównywanie modeli LLM…', compareSteps);
+    });
+
+    // ===== stop loader on page show (back/forward) =====
+    window.addEventListener('pageshow', function() {
+        stopLoading();
+    });
+
+    // ===== optional: click anywhere to dismiss early =====
+    // because overlay has pointer-events: none, clicks pass through
+    // we attach a one-time handler after submit to allow dismissal
+    document.querySelector('#tab-generate form').addEventListener('submit', function() {
+        setTimeout(() => {
+            const dismiss = function() {
+                if (overlay.classList.contains('active')) {
+                    stopLoading();
+                }
+                document.body.removeEventListener('click', dismiss);
+            };
+            document.body.addEventListener('click', dismiss);
+        }, 300);
+    });
+
+    document.querySelector('#tab-compare form').addEventListener('submit', function() {
+        setTimeout(() => {
+            const dismiss = function() {
+                if (overlay.classList.contains('active')) {
+                    stopLoading();
+                }
+                document.body.removeEventListener('click', dismiss);
+            };
+            document.body.addEventListener('click', dismiss);
+        }, 300);
+    });
+
+    // expose for debugging
+    window.__stopLoading = stopLoading;
 </script>
 </body>
 </html>
