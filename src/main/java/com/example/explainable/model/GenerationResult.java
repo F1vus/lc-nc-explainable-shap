@@ -23,4 +23,5 @@ public class GenerationResult {
     private String consistencyRemovedFragment;
     private String consistencyOriginalHtml;
     private String consistencyReducedHtml;
+    private List<PromptFragment> consistencyReducedFragments;
 }

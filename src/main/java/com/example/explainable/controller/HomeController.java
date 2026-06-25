@@ -92,6 +92,7 @@ public class HomeController {
         result.setConsistencyRemovedFragment(consistencyResult.removedFragment());
         result.setConsistencyOriginalHtml(consistencyResult.originalHtml());
         result.setConsistencyReducedHtml(consistencyResult.reducedHtml());
+        result.setConsistencyReducedFragments(consistencyResult.reducedFragments());
 
         model.addAttribute("result", result);
         model.addAttribute("generationRequest", generationRequest);

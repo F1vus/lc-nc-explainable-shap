@@ -4,6 +4,7 @@ import com.example.explainable.client.LlmClient;
 import com.example.explainable.model.GeneratedUi;
 import com.example.explainable.model.LlmProvider;
 import com.example.explainable.model.PromptFragment;
+import com.example.explainable.service.impl.LlmPromptFragmentExtractor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +19,8 @@ public class ExplanationService {
 
     private final LlmClient llmClient;
     private final LlmHtmlGenerationService htmlGenerationService;
+    private final LlmPromptFragmentExtractor fragmentExtractor;
+    private final ShapleyAttributionService attributionService;
 
     // ─── Explanation via LLM ────────────────────────────────────────────────
     public String explain(String appSummary, List<PromptFragment> fragments) {
@@ -85,7 +88,8 @@ public class ExplanationService {
     public record ConsistencyTestResult(
             String removedFragment,
             String originalHtml,
-            String reducedHtml
+            String reducedHtml,
+            List<PromptFragment> reducedFragments
     ) {}
 
     /**
@@ -109,6 +113,13 @@ public class ExplanationService {
         // Generate UI for the reduced prompt using the REAL LLM
         GeneratedUi reducedUi = htmlGenerationService.generate(reducedPrompt, provider);
 
-        return new ConsistencyTestResult(topFragment, originalHtml, reducedUi.html());
+        // Re-extract fragments and recompute Shapley attribution on the reduced prompt,
+        // so we can show how weights shift once the top fragment is gone.
+        List<String> reducedRawFragments = fragmentExtractor.extract(reducedPrompt);
+        List<PromptFragment> reducedFragments = reducedRawFragments.isEmpty()
+                ? List.of()
+                : attributionService.computeShapleyAttribution(reducedPrompt, reducedRawFragments, reducedUi);
+
+        return new ConsistencyTestResult(topFragment, originalHtml, reducedUi.html(), reducedFragments);
     }
 }
