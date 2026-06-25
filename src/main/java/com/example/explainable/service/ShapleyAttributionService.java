@@ -118,7 +118,6 @@ public class ShapleyAttributionService {
 
             for (int i : notInCoalition) {
                 int maskWithI = mask | (1 << i);
-                // Викликаємо coalitionValue з новим параметром
                 double vSi = valueCache.computeIfAbsent(maskWithI,
                         k -> {
                             List<Integer> coalitionWithI = new ArrayList<>(inCoalition);
@@ -153,10 +152,8 @@ public class ShapleyAttributionService {
                                   double[][] targetEmbeddings) {
         if (coalition.isEmpty()) return 0.0;
 
-        // Рахуємо середній вектор коаліції (той самий calculateMeanEmbedding)
         double[] coalitionEmbedding = calculateMeanEmbedding(coalition, fragmentEmbeddings);
 
-        // v(S) = наскільки добре ця група фрагментів "попадає" хоча б в один UI-елемент
         double maxSimilarity = 0.0;
         for (double[] targetEmb : targetEmbeddings) {
             double sim = cosineSimilarity(coalitionEmbedding, targetEmb);

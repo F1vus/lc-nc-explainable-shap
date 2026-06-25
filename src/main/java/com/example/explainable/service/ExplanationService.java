@@ -1,7 +1,10 @@
 package com.example.explainable.service;
 
 import com.example.explainable.client.LlmClient;
+import com.example.explainable.model.GeneratedUi;
+import com.example.explainable.model.LlmProvider;
 import com.example.explainable.model.PromptFragment;
+import com.example.explainable.service.impl.LlmPromptFragmentExtractor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +18,9 @@ import java.util.stream.Collectors;
 public class ExplanationService {
 
     private final LlmClient llmClient;
+    private final LlmHtmlGenerationService htmlGenerationService;
+    private final LlmPromptFragmentExtractor fragmentExtractor;
+    private final ShapleyAttributionService attributionService;
 
     // ─── Explanation via LLM ────────────────────────────────────────────────
     public String explain(String appSummary, List<PromptFragment> fragments) {
@@ -68,21 +74,52 @@ public class ExplanationService {
         );
     }
 
-    // ─── Consistency test ───────────────────────────────────────────────────
-
+    // ─── Consistency test (simple boolean) ──────────────────────────────────
     public boolean consistencyTest(String originalPrompt, String modifiedPrompt) {
-        if (modifiedPrompt == null || modifiedPrompt.isBlank()) {
-            return false;
-        }
-
-        if (modifiedPrompt.equalsIgnoreCase(originalPrompt)) {
-            return false;
-        }
-
+        if (modifiedPrompt == null || modifiedPrompt.isBlank()) return false;
+        if (modifiedPrompt.equalsIgnoreCase(originalPrompt)) return false;
         double ratio = (double) Math.abs(
                 originalPrompt.length() - modifiedPrompt.length()
         ) / Math.max(originalPrompt.length(), 1);
-
         return ratio > 0.05;
+    }
+
+    // ─── Full consistency test — returns both HTML outputs ──────────────────
+    public record ConsistencyTestResult(
+            String removedFragment,
+            String originalHtml,
+            String reducedHtml,
+            List<PromptFragment> reducedFragments
+    ) {}
+
+    /**
+     * Runs the SHAP consistency axiom test:
+     * removes the highest-scored fragment and re-generates with the real LLM.
+     */
+    public ConsistencyTestResult runConsistencyTest(
+            String originalPrompt,
+            List<PromptFragment> fragments,
+            String originalHtml,
+            LlmProvider provider) {
+
+        // Find top fragment by Shapley weight
+        String topFragment = fragments.stream()
+                .max(Comparator.comparingDouble(PromptFragment::weight))
+                .map(PromptFragment::text)
+                .orElse("");
+
+        String reducedPrompt = originalPrompt.replace(topFragment, "").trim();
+
+        // Generate UI for the reduced prompt using the REAL LLM
+        GeneratedUi reducedUi = htmlGenerationService.generate(reducedPrompt, provider);
+
+        // Re-extract fragments and recompute Shapley attribution on the reduced prompt,
+        // so we can show how weights shift once the top fragment is gone.
+        List<String> reducedRawFragments = fragmentExtractor.extract(reducedPrompt);
+        List<PromptFragment> reducedFragments = reducedRawFragments.isEmpty()
+                ? List.of()
+                : attributionService.computeShapleyAttribution(reducedPrompt, reducedRawFragments, reducedUi);
+
+        return new ConsistencyTestResult(topFragment, originalHtml, reducedUi.html(), reducedFragments);
     }
 }

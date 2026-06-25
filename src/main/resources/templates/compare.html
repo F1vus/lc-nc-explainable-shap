@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="pl" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LLM Comparison Result</title>
+    <link rel="stylesheet" th:href="@{/compare.css}" />
+  </head>
+  <body>
+    <div class="page">
+      <!-- Top bar -->
+      <div class="topbar">
+        <div>
+          <h1>⚖️ LLM Comparison Result</h1>
+          <p>
+            Side-by-side:
+            <strong th:text="${comparison.providerAName}"></strong> vs
+            <strong th:text="${comparison.providerBName}"></strong>
+          </p>
+        </div>
+        <a class="back-link" th:href="@{/}">← New Prompt</a>
+      </div>
+
+      <!-- Prompt -->
+      <div class="prompt-card">
+        <div class="label">Prompt</div>
+        <div class="value" th:text="${comparison.prompt}"></div>
+      </div>
+
+      <div class="metrics-row">
+        <!-- Groq status -->
+        <div class="metric-card">
+          <div class="provider-header">
+            <span class="provider-dot dot-groq"></span>
+            <span
+              class="provider-name"
+              th:text="${comparison.providerAName}"
+            ></span>
+            <span class="model-id" th:text="${comparison.modelAId}"></span>
+          </div>
+          <div class="metric-grid">
+            <div class="metric-item">
+              <div class="m-label">Status</div>
+              <div
+                class="m-value"
+                th:classappend="${comparison.groqSuccess} ? 'status-ok' : 'status-err'"
+                th:text="${comparison.groqSuccess} ? '✓ OK' : '✗ Error'"
+              ></div>
+            </div>
+          </div>
+          <div
+            th:if="${!comparison.groqSuccess}"
+            class="error-notice"
+            style="margin-top: 12px"
+            th:text="${comparison.groqError}"
+          ></div>
+        </div>
+
+        <!-- Gemini status -->
+        <div class="metric-card">
+          <div class="provider-header">
+            <span class="provider-dot dot-gemini"></span>
+            <span
+              class="provider-name"
+              th:text="${comparison.providerBName}"
+            ></span>
+            <span class="model-id" th:text="${comparison.modelBId}"></span>
+          </div>
+          <div class="metric-grid">
+            <div class="metric-item">
+              <div class="m-label">Status</div>
+              <div
+                class="m-value"
+                th:classappend="${comparison.geminiSuccess} ? 'status-ok' : 'status-err'"
+                th:text="${comparison.geminiSuccess} ? '✓ OK' : '✗ Error'"
+              ></div>
+            </div>
+          </div>
+          <div
+            th:if="${!comparison.geminiSuccess}"
+            class="error-notice"
+            style="margin-top: 12px"
+            th:text="${comparison.geminiError}"
+          ></div>
+        </div>
+      </div>
+
+      <!-- SHAP Attribution Charts -->
+      <div
+        class="compare-grid"
+        th:if="${not #lists.isEmpty(comparison.groqFragments) or not #lists.isEmpty(comparison.geminiFragments)}"
+      >
+        <!-- Groq SHAP chart -->
+        <div
+          class="chart-card"
+          th:if="${comparison.groqFragments != null and !comparison.groqFragments.isEmpty()}"
+        >
+          <h2>
+            🟢 <span th:text="${comparison.providerAName}"></span> — Shapley
+            Attribution
+          </h2>
+          <canvas id="groqShapChart"></canvas>
+        </div>
+
+        <!-- Gemini SHAP chart -->
+        <div
+          class="chart-card"
+          th:if="${comparison.geminiFragments != null and !comparison.geminiFragments.isEmpty()}"
+        >
+          <h2>
+            🟡 <span th:text="${comparison.providerBName}"></span> — Shapley
+            Attribution
+          </h2>
+          <canvas id="geminiShapChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Side-by-side preview -->
+      <div class="compare-grid">
+        <!-- Groq panel -->
+        <div class="panel-card">
+          <div class="panel-card-header">
+            <h2>🟢 <span th:text="${comparison.providerAName}"></span></h2>
+            <div style="display: flex; align-items: center; gap: 10px">
+              <span
+                class="badge badge-groq"
+                th:text="${comparison.modelAId}"
+              ></span>
+              <div class="view-toggle">
+                <button
+                  class="view-btn active"
+                  onclick="showPreview('groq', this)"
+                >
+                  Preview
+                </button>
+                <button class="view-btn" onclick="showCode('groq', this)">
+                  HTML
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="panel-card-body" th:if="${comparison.groqSuccess}">
+            <iframe
+              id="groq-preview"
+              class="preview-frame"
+              th:srcdoc="${comparison.groqHtml}"
+            ></iframe>
+            <pre
+              id="groq-code"
+              class="code-view"
+              th:text="${comparison.groqHtml}"
+            ></pre>
+          </div>
+          <div
+            class="panel-card-body"
+            th:if="${!comparison.groqSuccess}"
+            style="padding: 20px"
+          >
+            <div class="error-notice">
+              Generation failed: <span th:text="${comparison.groqError}"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gemini panel -->
+        <div class="panel-card">
+          <div class="panel-card-header">
+            <h2>🟡 <span th:text="${comparison.providerBName}"></span></h2>
+            <div style="display: flex; align-items: center; gap: 10px">
+              <span
+                class="badge badge-gemini"
+                th:text="${comparison.modelBId}"
+              ></span>
+              <div class="view-toggle">
+                <button
+                  class="view-btn active"
+                  onclick="showPreview('gemini', this)"
+                >
+                  Preview
+                </button>
+                <button class="view-btn" onclick="showCode('gemini', this)">
+                  HTML
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="panel-card-body" th:if="${comparison.geminiSuccess}">
+            <iframe
+              id="gemini-preview"
+              class="preview-frame"
+              th:srcdoc="${comparison.geminiHtml}"
+            ></iframe>
+            <pre
+              id="gemini-code"
+              class="code-view"
+              th:text="${comparison.geminiHtml}"
+            ></pre>
+          </div>
+          <div
+            class="panel-card-body"
+            th:if="${!comparison.geminiSuccess}"
+            style="padding: 20px"
+          >
+            <div class="error-notice">
+              Generation failed:
+              <span th:text="${comparison.geminiError}"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summaries -->
+      <div class="summary-row">
+        <div class="summary-card">
+          <div class="s-label">
+            🟢 <span th:text="${comparison.providerAName}"></span> — Summary
+          </div>
+          <div class="s-text" th:text="${comparison.groqSummary}"></div>
+        </div>
+        <div class="summary-card">
+          <div class="s-label">
+            🟡 <span th:text="${comparison.providerBName}"></span> — Summary
+          </div>
+          <div class="s-text" th:text="${comparison.geminiSummary}"></div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script th:inline="javascript">
+      // Używamy SpEL projections, aby wyciągnąć dane bezpośrednio z rekordów Javy
+      const groqLabels = /*[[${comparison.groqFragments.![text()]}]]*/ [];
+      const groqWeights = /*[[${comparison.groqFragments.![weight()]}]]*/ [];
+      const groqElements =
+        /*[[${comparison.groqFragments.![mappedElement()]}]]*/ [];
+
+      const geminiLabels = /*[[${comparison.geminiFragments.![text()]}]]*/ [];
+      const geminiWeights =
+        /*[[${comparison.geminiFragments.![weight()]}]]*/ [];
+      const geminiElements =
+        /*[[${comparison.geminiFragments.![mappedElement()]}]]*/ [];
+
+      function truncate(text, max) {
+        return text && text.length > max ? text.substring(0, max) + "…" : text;
+      }
+
+      function buildShapChart(canvasId, labels, rawWeights, elements, color) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas || !labels || labels.length === 0) return;
+
+        const cleanLabels = labels.map((l) => truncate(l, 40));
+        // Mapujemy wagi od razu do formatu procentowego
+        const percentWeights = rawWeights.map((w) =>
+          parseFloat((w * 100).toFixed(1)),
+        );
+
+        new Chart(canvas, {
+          type: "bar",
+          data: {
+            labels: cleanLabels,
+            datasets: [
+              {
+                label: "Shapley weight (%)",
+                data: percentWeights,
+                backgroundColor: color.bg,
+                borderColor: color.border,
+                borderWidth: 1.5,
+                borderRadius: 6,
+              },
+            ],
+          },
+          options: {
+            indexAxis: "y",
+            responsive: true,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => ctx.raw.toFixed(1) + "%",
+                  afterLabel: (ctx) => {
+                    // Wyciągamy zmapowany element UI
+                    const element = elements[ctx.dataIndex];
+                    return element ? "Element: " + element : "";
+                  },
+                },
+              },
+            },
+            scales: {
+              x: {
+                beginAtZero: true,
+                max: 100,
+                ticks: { color: "#94a3b8", callback: (v) => v + "%" },
+                grid: { color: "rgba(255,255,255,0.06)" },
+              },
+              y: {
+                ticks: { color: "#e5e7eb", font: { size: 12 } },
+                grid: { display: false },
+              },
+            },
+          },
+        });
+      }
+
+      // Budujemy wykresy z wyodrębnionych tablic
+      buildShapChart("groqShapChart", groqLabels, groqWeights, groqElements, {
+        bg: "rgba(34,197,94,0.55)",
+        border: "#16a34a",
+      });
+      buildShapChart(
+        "geminiShapChart",
+        geminiLabels,
+        geminiWeights,
+        geminiElements,
+        { bg: "rgba(245,158,11,0.55)", border: "#d97706" },
+      );
+
+      function showPreview(provider, btn) {
+        document.getElementById(provider + "-preview").style.display = "block";
+        document.getElementById(provider + "-code").style.display = "none";
+        btn
+          .closest(".view-toggle")
+          .querySelectorAll(".view-btn")
+          .forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+      }
+
+      function showCode(provider, btn) {
+        document.getElementById(provider + "-preview").style.display = "none";
+        document.getElementById(provider + "-code").style.display = "block";
+        btn
+          .closest(".view-toggle")
+          .querySelectorAll(".view-btn")
+          .forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+      }
+    </script>
+  </body>
+</html>
